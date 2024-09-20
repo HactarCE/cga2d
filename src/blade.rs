@@ -187,7 +187,7 @@ impl Blade2 {
     /// Returns the pair of points in a point pair.
     pub fn unpack_point_pair(self) -> [Blade1; 2] {
         [1.0, -1.0].map(|sign| {
-            let multiplier = dbg!(dbg!(NI << self).inv());
+            let multiplier = (NI << self).inv();
             (multiplier << self) + (sign * self.mag() * multiplier)
         })
     }

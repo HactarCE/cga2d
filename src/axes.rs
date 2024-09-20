@@ -85,6 +85,7 @@ pub const GEOMETRIC_PRODUCT_SIGN_LUT: [u16; 16] = [
 
 /// Sign of the reverse of a term, indexed by an `Axes`.
 pub const REVERSE_SIGN_LUT: u16 = 0b0111111011101000;
+pub const CONJUGATE_SIGN_LUT: u16 = 0b0001011101111110;
 
 impl Mul for Axes {
     type Output = Scalar;
@@ -98,6 +99,11 @@ impl Axes {
     /// Returns the sign of the reverse of the axes.
     pub fn reverse(self) -> Scalar {
         get_bit_as_sign(REVERSE_SIGN_LUT, self.bits())
+    }
+
+    /// Returns the sign of the conjugate of the axes.
+    pub fn conjugate(self) -> Scalar {
+        get_bit_as_sign(CONJUGATE_SIGN_LUT, self.bits())
     }
 }
 

@@ -58,4 +58,10 @@ impl Term {
     pub fn reverse(self) -> Self {
         Self::new(self.axes, self.coef * self.axes.reverse())
     }
+
+    /// Returns the reverse of the term.
+    #[must_use]
+    pub fn conjugate(self) -> Self {
+        Self::new(self.axes, self.coef * self.axes.reverse())
+    }
 }

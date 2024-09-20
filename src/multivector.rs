@@ -3,6 +3,8 @@ use std::{
     ops::{Add, Div, Mul, Sub},
 };
 
+use crate::ops::sum_terms;
+
 use super::{Axes, Scalar, Term};
 
 /// Multivector supporting an arbitrary subset of terms.
@@ -69,11 +71,19 @@ pub trait Multivector:
 
     /// Returns the inverse of the multivector.
     fn inv(self) -> Self {
-        println!();
-        println!();
-        println!();
-        println!();
-        let rev = dbg!(dbg!(self).rev());
-        rev / dbg!(self.dot(rev))
+        let rev = self.rev();
+        rev / self.dot(rev)
+    }
+
+    /// Returns the sandwich product of the multivector with `inner`.
+    fn sandwich<M: Multivector>(self, inner: M) -> M {
+        sum_terms(
+            itertools::iproduct!(
+                self.terms().as_ref(),
+                inner.terms().as_ref(),
+                self.terms().as_ref()
+            )
+            .map(|(&l, &m, &r)| l * m * r),
+        )
     }
 }
