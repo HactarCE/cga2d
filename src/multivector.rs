@@ -1,11 +1,23 @@
-use std::fmt;
+use std::{
+    fmt,
+    ops::{Add, Div, Mul, Sub},
+};
 
 use super::{Axes, Scalar, Term};
 
 /// Multivector supporting an arbitrary subset of terms.
-pub trait Multivector: fmt::Debug + Default + Copy + PartialEq {
+pub trait Multivector:
+    fmt::Debug
+    + Default
+    + Copy
+    + PartialEq
+    + Add<Output = Self>
+    + Sub<Output = Self>
+    + Mul<Scalar, Output = Self>
+    + Div<Scalar, Output = Self>
+{
     /// Array type `[Term; N]` of terms in the blade.
-    type Terms: AsRef<[Term]> + IntoIterator<Item = Term>;
+    type Terms: Copy + AsRef<[Term]> + IntoIterator<Item = Term>;
 
     /// Dual blade type.
     type Dual: Multivector;
@@ -21,22 +33,47 @@ pub trait Multivector: fmt::Debug + Default + Copy + PartialEq {
     /// Returns the dual of the blade, which results from right-multiplying the
     /// blade by the pseudoscalar.
     fn dual(self) -> Self::Dual {
-        let mut ret = Self::Dual::default();
-        for term in self.terms() {
-            let new_term = term.dual();
-            *ret.get_mut(new_term.axes).expect("bad dual") += new_term.coef;
-        }
-        ret
+        crate::ops::sum_terms(self.terms().into_iter().map(|t| t.dual()))
     }
 
     /// Returns the antidual of the blade, which results from left-multiplying
     /// the blade by the pseudoscalar.
     fn antidual(self) -> Self::Dual {
-        let mut ret = Self::Dual::default();
-        for term in self.terms() {
-            let new_term = term.antidual();
-            *ret.get_mut(new_term.axes).expect("bad dual") += new_term.coef;
-        }
-        ret
+        crate::ops::sum_terms(self.terms().into_iter().map(|t| t.antidual()))
+    }
+
+    /// Returns the scalar dot product of two multivectors.
+    fn dot(self, other: Self) -> Scalar {
+        crate::ops::multiply_and_grade_project(self, other)
+    }
+
+    /// Returns the sum of the squares of all the components in the blade.
+    fn mag2(self) -> Scalar {
+        self.dot(self)
+    }
+
+    /// Returns the magnitude of the blade.
+    fn mag(self) -> Scalar {
+        self.mag2().sqrt()
+    }
+
+    /// Normalizes a multivector with respect to its magnitude.
+    fn normalize(self) -> Self {
+        self / self.mag()
+    }
+
+    /// Returns the termwise reverse of the multivector.
+    fn rev(self) -> Self {
+        crate::ops::sum_terms(self.terms().into_iter().map(|t| t.reverse()))
+    }
+
+    /// Returns the inverse of the multivector.
+    fn inv(self) -> Self {
+        println!();
+        println!();
+        println!();
+        println!();
+        let rev = dbg!(dbg!(self).rev());
+        rev / dbg!(self.dot(rev))
     }
 }

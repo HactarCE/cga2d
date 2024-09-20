@@ -1,6 +1,21 @@
-use std::ops::{Add, AddAssign, BitAnd, BitXor, Index, IndexMut, Not, Shl, Sub, SubAssign};
+use std::iter::Sum;
+use std::ops::{
+    Add, AddAssign, BitAnd, BitXor, Div, DivAssign, Index, IndexMut, Mul, MulAssign, Not, Shl, Sub,
+    SubAssign,
+};
 
-use super::{Axes, Blade1, Blade2, Blade3, Multivector, Pseudoscalar, Scalar, Term};
+use super::{Axes, Blade, Blade1, Blade2, Blade3, Multivector, Pseudoscalar, Scalar, Term};
+
+/// Wedge operation between two blades.
+pub trait Wedge<Rhs: Blade>: Blade {
+    /// Output blade type.
+    type Output: Blade;
+
+    /// Returns the wedge of two blades.
+    fn wedge(self, rhs: Rhs) -> <Self as Wedge<Rhs>>::Output {
+        multiply_and_grade_project(self, rhs)
+    }
+}
 
 macro_rules! impl_index_term {
     ($ty:ty) => {
@@ -87,22 +102,89 @@ impl_add_sub_term_ops!(Blade2);
 impl_add_sub_term_ops!(Blade3);
 impl_add_sub_term_ops!(Pseudoscalar);
 
+macro_rules! impl_mul_div_scalar_ops {
+    ($type:ty) => {
+        impl<T> Mul<T> for $type
+        where
+            $type: MulAssign<T>,
+        {
+            type Output = $type;
+
+            fn mul(mut self, rhs: T) -> Self::Output {
+                self *= rhs;
+                self
+            }
+        }
+        impl<T> Div<T> for $type
+        where
+            $type: DivAssign<T>,
+        {
+            type Output = $type;
+
+            fn div(mut self, rhs: T) -> Self::Output {
+                self /= rhs;
+                self
+            }
+        }
+
+        impl MulAssign<Scalar> for $type {
+            fn mul_assign(&mut self, rhs: Scalar) {
+                for term in self.terms() {
+                    self[term.axes] *= rhs;
+                }
+            }
+        }
+
+        impl DivAssign<Scalar> for $type {
+            fn div_assign(&mut self, rhs: Scalar) {
+                for term in self.terms() {
+                    self[term.axes] /= rhs;
+                }
+            }
+        }
+    };
+}
+
+impl_mul_div_scalar_ops!(Blade1);
+impl_mul_div_scalar_ops!(Blade2);
+impl_mul_div_scalar_ops!(Blade3);
+impl_mul_div_scalar_ops!(Pseudoscalar);
+
+macro_rules! impl_blade_wedge {
+    ($lhs:ty, $rhs:ty, $out:ty) => {
+        impl Wedge<$rhs> for $lhs {
+            type Output = $out;
+        }
+    };
+}
+
+impl_blade_wedge!(Scalar, Scalar, Scalar);
+impl_blade_wedge!(Scalar, Blade1, Blade1);
+impl_blade_wedge!(Scalar, Blade2, Blade2);
+impl_blade_wedge!(Scalar, Blade3, Blade3);
+impl_blade_wedge!(Scalar, Pseudoscalar, Pseudoscalar);
+
+impl_blade_wedge!(Blade1, Scalar, Blade1);
+impl_blade_wedge!(Blade1, Blade1, Blade2);
+impl_blade_wedge!(Blade1, Blade2, Blade3);
+impl_blade_wedge!(Blade1, Blade3, Pseudoscalar);
+
+impl_blade_wedge!(Blade2, Scalar, Blade2);
+impl_blade_wedge!(Blade2, Blade1, Blade3);
+impl_blade_wedge!(Blade2, Blade2, Pseudoscalar);
+
+impl_blade_wedge!(Blade3, Scalar, Blade3);
+impl_blade_wedge!(Blade3, Blade1, Pseudoscalar);
+
+impl_blade_wedge!(Pseudoscalar, Scalar, Pseudoscalar);
+
 macro_rules! impl_multivector_binary_ops {
     ($lhs:ty, $rhs:ty, $out:ty, $trait:ident, $method:ident, $op:tt) => {
         impl $trait<$rhs> for $lhs {
             type Output = $out;
 
             fn $method(self, rhs: $rhs) -> Self::Output {
-                let mut out = <$out>::default();
-                for lhs_term in self.terms() {
-                    for rhs_term in rhs.terms() {
-                        let new_term = lhs_term $op rhs_term;
-                        if let Some(out_coef) = out.get_mut(new_term.axes) {
-                            *out_coef += new_term.coef
-                        }
-                    }
-                }
-                out
+                multiply_and_grade_project(self, rhs)
             }
         }
     };
@@ -121,10 +203,26 @@ macro_rules! impl_multivector_binary_ops {
             type Output = $out;
 
             fn bitand(self, rhs: $rhs) -> Self::Output {
-                // In 2D, the sign is flipped compared to the proper antiwedge.
                 (self.dual() ^ rhs.dual()).antidual()
             }
         }
+    };
+    (($lhs:ty) / ($rhs:ty) -> $out:ty) => {
+        impl Div<$rhs> for $lhs {
+            type Output = $out;
+
+            fn div(self, rhs: $rhs) -> Self::Output {
+                let mut ret = Self::default();
+                for term in self.terms() {
+                    ret[term.axes] /= rhs;
+                }
+                self
+            }
+        }
+    };
+
+    (($lhs:ty) $op:tt ($rhs:ty) -> $out:ty) => {
+        compile_error!(concat!("unsupported operation: ", stringify!($op)));
     };
 
     ($(($lhs:ty) $op:tt ($rhs:ty) -> $out:ty);* $(;)?) => {
@@ -133,6 +231,11 @@ macro_rules! impl_multivector_binary_ops {
 }
 
 impl_multivector_binary_ops!(
+    (Scalar) * (Blade1) -> Blade1;
+    (Scalar) * (Blade2) -> Blade2;
+    (Scalar) * (Blade3) -> Blade3;
+    (Scalar) * (Pseudoscalar) -> Pseudoscalar;
+
     (Blade1) ^ (Blade1) -> Blade2;
 
     (Blade1) ^ (Blade2) -> Blade3;
@@ -141,6 +244,15 @@ impl_multivector_binary_ops!(
     (Blade1) ^ (Blade3) -> Pseudoscalar;
     (Blade2) ^ (Blade2) -> Pseudoscalar;
     (Blade3) ^ (Blade1) -> Pseudoscalar;
+
+    (Blade3) & (Blade3) -> Blade2;
+
+    (Blade3) & (Blade2) -> Blade1;
+    (Blade2) & (Blade3) -> Blade1;
+
+    (Blade3) & (Blade1) -> Scalar;
+    (Blade2) & (Blade2) -> Scalar;
+    (Blade1) & (Blade3) -> Scalar;
 
     (Blade1) << (Blade1) -> Scalar;
     (Blade1) << (Blade2) -> Blade1;
@@ -155,15 +267,6 @@ impl_multivector_binary_ops!(
     (Blade3) << (Pseudoscalar) -> Blade1;
 
     (Pseudoscalar) << (Pseudoscalar) -> Blade1;
-
-    (Blade3) & (Blade3) -> Blade2;
-
-    (Blade3) & (Blade2) -> Blade1;
-    (Blade2) & (Blade3) -> Blade1;
-
-    (Blade3) & (Blade1) -> Scalar;
-    (Blade2) & (Blade2) -> Scalar;
-    (Blade1) & (Blade3) -> Scalar;
 );
 
 macro_rules! impl_multivector_dual {
@@ -182,3 +285,40 @@ impl_multivector_dual!(Blade1);
 impl_multivector_dual!(Blade2);
 impl_multivector_dual!(Blade3);
 impl_multivector_dual!(Pseudoscalar);
+
+pub(crate) fn multiply_and_grade_project<L, R, O>(lhs: L, rhs: R) -> O
+where
+    L: Multivector,
+    R: Multivector,
+    O: Blade,
+{
+    sum_terms(
+        itertools::iproduct!(lhs.terms().as_ref(), rhs.terms().as_ref()).map(|(&l, &r)| l * r),
+    )
+}
+
+macro_rules! impl_sum_terms {
+    ($ty:ty) => {
+        impl Sum<Term> for $ty {
+            fn sum<I: Iterator<Item = Term>>(iter: I) -> Self {
+                sum_terms(iter)
+            }
+        }
+    };
+}
+
+impl_sum_terms!(Scalar);
+impl_sum_terms!(Blade1);
+impl_sum_terms!(Blade2);
+impl_sum_terms!(Blade3);
+impl_sum_terms!(Pseudoscalar);
+
+pub(crate) fn sum_terms<M: Multivector>(terms: impl IntoIterator<Item = Term>) -> M {
+    let mut ret = M::default();
+    for term in terms {
+        if let Some(ret_coef) = ret.get_mut(term.axes) {
+            *ret_coef += term.coef;
+        }
+    }
+    ret
+}

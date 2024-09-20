@@ -12,29 +12,29 @@ bitflags::bitflags! {
         /// Scalar
         const S = 0b0000;
 
-        /// $e_-$
+        /// e₋
         const M = 0b0001;
 
-        /// $e_+$
-        const P = 0b0000;
+        /// e₊
+        const P = 0b0010;
 
-        /// $x$
+        /// x
         const X = 0b0100;
 
-        /// $y$
+        /// y
         const Y = 0b1000;
 
-        const MP = 0b0001;
+        const MP = 0b0011;
         const MX = 0b0101;
-        const PX = 0b0100;
-        const MPX = 0b0101;
+        const PX = 0b0110;
+        const MPX = 0b0111;
         const MY = 0b1001;
-        const PY = 0b1000;
-        const MPY = 0b1001;
+        const PY = 0b1010;
+        const MPY = 0b1011;
         const XY = 0b1100;
         const MXY = 0b1101;
-        const PXY = 0b1100;
-        const MPXY = 0b1101;
+        const PXY = 0b1110;
+        const MPXY = 0b1111;
     }
 }
 
@@ -63,32 +63,63 @@ impl fmt::Display for Axes {
     }
 }
 
-pub const SIGNATURE: [u16; 16] = [
+/// Sign of the geometric product of two terms, indexed by two `Axes`.
+pub const GEOMETRIC_PRODUCT_SIGN_LUT: [u16; 16] = [
     0b0000000000000000,
-    0b0101010101010101,
-    0b0101010101010101,
+    0b1010101010101010,
+    0b1010101010101010,
     0b0000000000000000,
     0b0110011001100110,
-    0b0011001100110011,
-    0b0011001100110011,
+    0b1100110011001100,
+    0b1100110011001100,
     0b0110011001100110,
-    0b0110100101101001,
+    0b1001011010010110,
     0b0011110000111100,
     0b0011110000111100,
-    0b0110100101101001,
-    0b0000111100001111,
+    0b1001011010010110,
+    0b1111000011110000,
     0b0101101001011010,
     0b0101101001011010,
-    0b0000111100001111,
+    0b1111000011110000,
 ];
+
+/// Sign of the reverse of a term, indexed by an `Axes`.
+pub const REVERSE_SIGN_LUT: u16 = 0b0111111011101000;
 
 impl Mul for Axes {
     type Output = Scalar;
 
     fn mul(self, rhs: Self) -> Self::Output {
-        match SIGNATURE[self.bits() as usize] & (1 << rhs.bits() as u16) {
-            0 => 1.0,
-            _ => -1.0,
-        }
+        get_bit_as_sign(GEOMETRIC_PRODUCT_SIGN_LUT[self.bits() as usize], rhs.bits())
+    }
+}
+
+impl Axes {
+    /// Returns the sign of the reverse of the axes.
+    pub fn reverse(self) -> Scalar {
+        get_bit_as_sign(REVERSE_SIGN_LUT, self.bits())
+    }
+}
+
+fn get_bit_as_sign(bitmask: u16, index: u8) -> Scalar {
+    match bitmask & (1 << index as u16) {
+        0 => 1.0,
+        _ => -1.0,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_geometric_product_sign() {
+        assert_eq!(Axes::X * Axes::X, 1.0);
+        assert_eq!(Axes::X * Axes::Y, 1.0);
+        assert_eq!(Axes::Y * Axes::X, -1.0);
+        assert_eq!(Axes::X * Axes::M, -1.0);
+        assert_eq!(Axes::X * Axes::P, -1.0);
+        assert_eq!(Axes::P * Axes::P, 1.0);
+        assert_eq!(Axes::M * Axes::M, -1.0);
     }
 }

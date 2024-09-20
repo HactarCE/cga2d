@@ -1,11 +1,34 @@
 #![allow(missing_docs)]
 
-use super::{Axes, Multivector, Scalar, Term};
+use super::{Axes, Multivector, Scalar, Term, Wedge};
 
+/// ∞, representing the point at infinity.
+pub const NI: Blade1 = Blade1 {
+    m: 1.0,
+    p: 1.0,
+    x: 0.0,
+    y: 0.0,
+};
+
+/// nₒ, representing the origin.
+pub const NO: Blade1 = Blade1 {
+    m: 0.5,
+    p: -0.5,
+    x: 0.0,
+    y: 0.0,
+};
 /// Multivector of a compile-time-known grade.
 pub trait Blade: Multivector {
     /// Number of basis vectors comprising each term of the blade.
     const GRADE: u8;
+
+    /// Returns `!self ^ other`
+    fn connect<R: Blade>(self, other: R) -> <Self::Dual as Wedge<R>>::Output
+    where
+        Self::Dual: Wedge<R>,
+    {
+        self.dual().wedge(other)
+    }
 }
 
 impl Multivector for Scalar {
@@ -80,6 +103,31 @@ impl Multivector for Blade1 {
 impl Blade for Blade1 {
     const GRADE: u8 = 1;
 }
+impl Blade1 {
+    /// Returns the ∞ component of the blade.
+    pub fn ni(self) -> Scalar {
+        (self.m + self.p) / 2.0
+    }
+    /// Returns the ∞ component of the blade.
+    pub fn no(self) -> Scalar {
+        self.m - self.p
+    }
+
+    /// Returns the coordinates of a point in 2D Euclidean space.
+    ///
+    /// If the blade does not represent a conformal point, then the output may
+    /// be meaningless.
+    pub fn unpack_point(self) -> (Scalar, Scalar) {
+        let no = self.no();
+        (self.x / no, self.y / no)
+    }
+
+    /// Normalizes a point with respect to nₒ.
+    #[must_use]
+    pub fn normalize_point(self) -> Self {
+        self / self.no()
+    }
+}
 
 /// 2-blade, used to represent point pairs (real and imaginary), tangent
 /// vectors, and flat points.
@@ -134,6 +182,15 @@ impl Multivector for Blade2 {
 }
 impl Blade for Blade2 {
     const GRADE: u8 = 2;
+}
+impl Blade2 {
+    /// Returns the pair of points in a point pair.
+    pub fn unpack_point_pair(self) -> [Blade1; 2] {
+        [1.0, -1.0].map(|sign| {
+            let multiplier = dbg!(dbg!(NI << self).inv());
+            (multiplier << self) + (sign * self.mag() * multiplier)
+        })
+    }
 }
 
 /// 3-blade, used to represent circles (real and imaginary).

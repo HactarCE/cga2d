@@ -52,4 +52,10 @@ impl Term {
     pub fn antidual(self) -> Self {
         Self::pseudoscalar(1.0) * self
     }
+
+    /// Returns the reverse of the term.
+    #[must_use]
+    pub fn reverse(self) -> Self {
+        Self::new(self.axes, self.coef * self.axes.reverse())
+    }
 }
