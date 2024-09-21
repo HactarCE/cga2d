@@ -11,3 +11,7 @@ Read [the documentation][docs] for more details.
 The scalar type is `f64`. I'm open to adding support for other scalar types, probably via feature flags. I'd prefer not to use generics, because that would greatly hinder ergonomics.
 
 [docs]: https://docs.rs/cga2d/latest/cga2d/
+
+## Known issues
+
+- Not enough tests! I don't actually know if all the operations are implemented correctly.
