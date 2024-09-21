@@ -1,3 +1,4 @@
+use std::fmt;
 use std::ops::Mul;
 
 use super::{Axes, Scalar};
@@ -9,6 +10,17 @@ pub struct Term {
     pub axes: Axes,
     /// Scalar coefficient.
     pub coef: Scalar,
+}
+
+impl fmt::Display for Term {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let &Self { axes, coef } = self;
+        if axes == Axes::S {
+            write!(f, "{coef}")
+        } else {
+            write!(f, "{coef}{axes}")
+        }
+    }
 }
 
 impl Mul for Term {

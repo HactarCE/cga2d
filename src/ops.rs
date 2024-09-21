@@ -1,5 +1,6 @@
 #![allow(clippy::suspicious_arithmetic_impl)]
 
+use std::fmt;
 use std::iter::Sum;
 use std::ops::{
     Add, AddAssign, BitAnd, BitXor, Div, DivAssign, Index, IndexMut, Mul, MulAssign, Not, Shl, Sub,
@@ -23,8 +24,8 @@ pub trait Wedge<Rhs: Blade>: Blade {
 }
 
 macro_rules! impl_index_term {
-    ($ty:ty) => {
-        impl Index<Axes> for $ty {
+    ($type:ty) => {
+        impl Index<Axes> for $type {
             type Output = Scalar;
 
             fn index(&self, index: Axes) -> &Self::Output {
@@ -33,7 +34,7 @@ macro_rules! impl_index_term {
             }
         }
 
-        impl IndexMut<Axes> for $ty {
+        impl IndexMut<Axes> for $type {
             fn index_mut(&mut self, index: Axes) -> &mut Self::Output {
                 self.get_mut(index)
                     .expect(concat!("invalid index for ", stringify!($ty)))
@@ -49,6 +50,31 @@ impl_index_term!(Pseudoscalar);
 impl_index_term!(Rotor);
 impl_index_term!(Flector);
 impl_index_term!(Rotoflector);
+
+macro_rules! impl_display_terms {
+    ($type:ty) => {
+        impl fmt::Display for $type {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                let mut is_first = true;
+                for term in self.terms() {
+                    if !std::mem::take(&mut is_first) {
+                        write!(f, " + ")?;
+                    }
+                    write!(f, "{term}")?;
+                }
+                Ok(())
+            }
+        }
+    };
+}
+
+impl_display_terms!(Blade1);
+impl_display_terms!(Blade2);
+impl_display_terms!(Blade3);
+impl_display_terms!(Pseudoscalar);
+impl_display_terms!(Rotor);
+impl_display_terms!(Flector);
+impl_display_terms!(Rotoflector);
 
 macro_rules! impl_add_sub_term_ops {
     ($type:ty) => {
@@ -328,9 +354,9 @@ impl_multivector_binary_ops!(
 );
 
 macro_rules! impl_multivector_dual {
-    ($ty:ty) => {
-        impl Not for $ty {
-            type Output = <$ty as Multivector>::Dual;
+    ($type:ty) => {
+        impl Not for $type {
+            type Output = <$type as Multivector>::Dual;
 
             fn not(self) -> Self::Output {
                 self.dual()
@@ -348,8 +374,8 @@ impl_multivector_dual!(Flector);
 impl_multivector_dual!(Rotoflector);
 
 macro_rules! impl_abs_diff_eq {
-    ($ty:ty) => {
-        impl approx::AbsDiffEq for $ty {
+    ($type:ty) => {
+        impl approx::AbsDiffEq for $type {
             type Epsilon = Scalar;
 
             fn default_epsilon() -> Self::Epsilon {
@@ -385,8 +411,8 @@ where
 }
 
 macro_rules! impl_sum_terms {
-    ($ty:ty) => {
-        impl Sum<Term> for $ty {
+    ($type:ty) => {
+        impl Sum<Term> for $type {
             fn sum<I: Iterator<Item = Term>>(iter: I) -> Self {
                 grade_project_and_sum_terms(iter)
             }
