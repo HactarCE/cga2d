@@ -1,5 +1,3 @@
-#![allow(missing_docs)]
-
 use super::{Axes, Multivector, Scalar, Term, Wedge};
 
 /// ∞, representing the point at infinity.
@@ -60,6 +58,7 @@ impl Blade for Scalar {
 
 /// 1-blade, used to represent points, vectors, and round points.
 #[derive(Debug, Default, Copy, Clone, PartialEq)]
+#[allow(missing_docs)]
 pub struct Blade1 {
     pub m: Scalar,
     pub p: Scalar,
@@ -132,6 +131,7 @@ impl Blade1 {
 /// 2-blade, used to represent point pairs (real and imaginary), tangent
 /// vectors, and flat points.
 #[derive(Debug, Default, Copy, Clone, PartialEq)]
+#[allow(missing_docs)]
 pub struct Blade2 {
     pub mp: Scalar,
     pub mx: Scalar,
@@ -195,6 +195,7 @@ impl Blade2 {
 
 /// 3-blade, used to represent circles (real and imaginary).
 #[derive(Debug, Default, Copy, Clone, PartialEq)]
+#[allow(missing_docs)]
 pub struct Blade3 {
     pub mpx: Scalar,
     pub mpy: Scalar,
@@ -241,6 +242,7 @@ impl Blade for Blade3 {
 
 /// 4-blade, used to represent pseduoscalar quantities.
 #[derive(Debug, Default, Copy, Clone, PartialEq)]
+#[allow(missing_docs)]
 pub struct Pseudoscalar {
     pub mpxy: Scalar,
 }

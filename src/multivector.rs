@@ -3,7 +3,7 @@ use std::{
     ops::{Add, Div, Mul, Sub},
 };
 
-use crate::ops::sum_terms;
+use crate::ops::grade_project_and_sum_terms;
 
 use super::{Axes, Scalar, Term};
 
@@ -35,13 +35,13 @@ pub trait Multivector:
     /// Returns the dual of the blade, which results from right-multiplying the
     /// blade by the pseudoscalar.
     fn dual(self) -> Self::Dual {
-        crate::ops::sum_terms(self.terms().into_iter().map(|t| t.dual()))
+        crate::ops::grade_project_and_sum_terms(self.terms().into_iter().map(|t| t.dual()))
     }
 
     /// Returns the antidual of the blade, which results from left-multiplying
     /// the blade by the pseudoscalar.
     fn antidual(self) -> Self::Dual {
-        crate::ops::sum_terms(self.terms().into_iter().map(|t| t.antidual()))
+        crate::ops::grade_project_and_sum_terms(self.terms().into_iter().map(|t| t.antidual()))
     }
 
     /// Returns the scalar dot product of two multivectors.
@@ -66,7 +66,7 @@ pub trait Multivector:
 
     /// Returns the termwise reverse of the multivector.
     fn rev(self) -> Self {
-        crate::ops::sum_terms(self.terms().into_iter().map(|t| t.reverse()))
+        crate::ops::grade_project_and_sum_terms(self.terms().into_iter().map(|t| t.reverse()))
     }
 
     /// Returns the inverse of the multivector.
@@ -77,7 +77,7 @@ pub trait Multivector:
 
     /// Returns the sandwich product of the multivector with `inner`.
     fn sandwich<M: Multivector>(self, inner: M) -> M {
-        sum_terms(
+        grade_project_and_sum_terms(
             itertools::iproduct!(
                 self.terms().as_ref(),
                 inner.terms().as_ref(),

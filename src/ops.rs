@@ -1,10 +1,12 @@
+#![allow(clippy::suspicious_arithmetic_impl)]
+
 use std::iter::Sum;
 use std::ops::{
     Add, AddAssign, BitAnd, BitXor, Div, DivAssign, Index, IndexMut, Mul, MulAssign, Not, Shl, Sub,
     SubAssign,
 };
 
-use super::{Axes, Blade, Blade1, Blade2, Blade3, Multivector, Pseudoscalar, Scalar, Term};
+use super::{Axes, Blade, Blade1, Blade2, Blade3, Multivector, Pseudoscalar, Rotor, Scalar, Term};
 
 /// Wedge operation between two blades.
 pub trait Wedge<Rhs: Blade>: Blade {
@@ -41,6 +43,7 @@ impl_index_term!(Blade1);
 impl_index_term!(Blade2);
 impl_index_term!(Blade3);
 impl_index_term!(Pseudoscalar);
+impl_index_term!(Rotor);
 
 macro_rules! impl_add_sub_term_ops {
     ($type:ty) => {
@@ -101,6 +104,7 @@ impl_add_sub_term_ops!(Blade1);
 impl_add_sub_term_ops!(Blade2);
 impl_add_sub_term_ops!(Blade3);
 impl_add_sub_term_ops!(Pseudoscalar);
+impl_add_sub_term_ops!(Rotor);
 
 macro_rules! impl_mul_div_scalar_ops {
     ($type:ty) => {
@@ -149,6 +153,7 @@ impl_mul_div_scalar_ops!(Blade1);
 impl_mul_div_scalar_ops!(Blade2);
 impl_mul_div_scalar_ops!(Blade3);
 impl_mul_div_scalar_ops!(Pseudoscalar);
+impl_mul_div_scalar_ops!(Rotor);
 
 macro_rules! impl_blade_wedge {
     ($lhs:ty, $rhs:ty, $out:ty) => {
@@ -235,6 +240,32 @@ impl_multivector_binary_ops!(
     (Scalar) * (Blade2) -> Blade2;
     (Scalar) * (Blade3) -> Blade3;
     (Scalar) * (Pseudoscalar) -> Pseudoscalar;
+    (Scalar) * (Rotor) -> Pseudoscalar;
+
+    (Blade1) * (Blade1) -> Rotor;
+    // (Blade1) * (Blade2) -> Flector;
+    (Blade1) * (Blade3) -> Rotor;
+    // (Blade1) * (Pseudoscalar) -> Flector;
+
+    // (Blade2) * (Blade1) -> Flector;
+    (Blade2) * (Blade2) -> Rotor;
+    // (Blade2) * (Blade3) -> Flector;
+    (Blade2) * (Pseudoscalar) -> Rotor;
+
+    (Blade3) * (Blade1) -> Rotor;
+    // (Blade3) * (Blade2) -> Flector;
+    (Blade3) * (Blade3) -> Rotor;
+    // (Blade3) * (Pseudoscalar) -> Flector;
+
+    // (Pseudoscalar) * (Blade1) -> Flector;
+    (Pseudoscalar) * (Blade2) -> Rotor;
+    // (Pseudoscalar) * (Blade3) -> Flector;
+    (Pseudoscalar) * (Pseudoscalar) -> Rotor;
+
+    (Rotor) * (Rotor) -> Rotor;
+    // (Rotor) * (Flector) -> Flector;
+    // // (Flector) * (Rotor) -> Flector;
+    // (Flector) * (Flector) -> Rotor;
 
     (Blade1) ^ (Blade1) -> Blade2;
 
@@ -285,14 +316,15 @@ impl_multivector_dual!(Blade1);
 impl_multivector_dual!(Blade2);
 impl_multivector_dual!(Blade3);
 impl_multivector_dual!(Pseudoscalar);
+impl_multivector_dual!(Rotor);
 
 pub(crate) fn multiply_and_grade_project<L, R, O>(lhs: L, rhs: R) -> O
 where
     L: Multivector,
     R: Multivector,
-    O: Blade,
+    O: Multivector,
 {
-    sum_terms(
+    grade_project_and_sum_terms(
         itertools::iproduct!(lhs.terms().as_ref(), rhs.terms().as_ref()).map(|(&l, &r)| l * r),
     )
 }
@@ -301,7 +333,7 @@ macro_rules! impl_sum_terms {
     ($ty:ty) => {
         impl Sum<Term> for $ty {
             fn sum<I: Iterator<Item = Term>>(iter: I) -> Self {
-                sum_terms(iter)
+                grade_project_and_sum_terms(iter)
             }
         }
     };
@@ -312,8 +344,11 @@ impl_sum_terms!(Blade1);
 impl_sum_terms!(Blade2);
 impl_sum_terms!(Blade3);
 impl_sum_terms!(Pseudoscalar);
+impl_sum_terms!(Rotor);
 
-pub(crate) fn sum_terms<M: Multivector>(terms: impl IntoIterator<Item = Term>) -> M {
+pub(crate) fn grade_project_and_sum_terms<M: Multivector>(
+    terms: impl IntoIterator<Item = Term>,
+) -> M {
     let mut ret = M::default();
     for term in terms {
         if let Some(ret_coef) = ret.get_mut(term.axes) {
