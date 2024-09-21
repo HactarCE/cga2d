@@ -23,8 +23,23 @@ mod ops;
 mod rotoflector;
 mod term;
 
+/// Traits and basic types (blades, NI, NO, rotor/flector/rotoflector).
+pub mod prelude {
+    pub use crate::traits::*;
+
+    pub use crate::blade::{Blade1, Blade2, Blade3, Pseudoscalar, NI, NO};
+    pub use crate::rotoflector::{Flector, Rotoflector, Rotor};
+}
+
+/// Traits.
+pub mod traits {
+    pub use crate::blade::Blade;
+    pub use crate::multivector::Multivector;
+    pub use crate::ops::Wedge;
+}
+
 pub use axes::Axes;
-pub use blade::{Blade, Blade1, Blade2, Blade3, Pseudoscalar, NI, NO};
+pub use blade::{Blade, Blade1, Blade2, Blade3, LineOrCircle, Pseudoscalar, NI, NO};
 pub use multivector::Multivector;
 pub use ops::Wedge;
 pub use rotoflector::{Flector, Rotoflector, Rotor};
@@ -38,21 +53,35 @@ pub fn slerp<M: Multivector>(a: M, b: M, angle: Scalar) -> M {
     a.normalize() * angle.cos() + b.normalize() * angle.sin()
 }
 
+/// Lifts a Euclidean vector into 2D CGA.
+pub fn vector(x: Scalar, y: Scalar) -> Blade1 {
+    let m = 0.0;
+    let p = 0.0;
+    Blade1 { m, p, x, y }
+}
+
 /// Lifts a Euclidean point into 2D conformal space.
 pub fn point(x: Scalar, y: Scalar) -> Blade1 {
-    let xy = Blade1 {
-        m: 0.0,
-        p: 0.0,
-        x,
-        y,
-    };
     let mag2 = x * x + y * y;
-    NO + xy + NI * 0.5 * mag2
+    NO + vector(x, y) + 0.5 * mag2 * NI
 }
 
 /// Constructs a circle given a center point and a radius.
+///
+/// If `radius` is negative, constructs an imaginary circle.
 pub fn circle(center: Blade1, radius: Scalar) -> Blade3 {
-    !(center - 0.5 * radius * radius * NI)
+    !(center - 0.5 * radius * radius.abs() * NI)
+}
+
+/// Constructs a line from the equation _ax+by+c=0_.
+pub fn line(a: Scalar, b: Scalar, c: Scalar) -> Blade3 {
+    Blade1 {
+        m: c,
+        p: c,
+        x: a,
+        y: b,
+    }
+    .dual()
 }
 
 #[cfg(test)]

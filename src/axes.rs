@@ -64,7 +64,7 @@ impl fmt::Display for Axes {
 }
 
 /// Sign of the geometric product of two terms, indexed by two `Axes`.
-pub const GEOMETRIC_PRODUCT_SIGN_LUT: [u16; 16] = [
+const GEOMETRIC_PRODUCT_SIGN_LUT: [u16; 16] = [
     0b0000000000000000,
     0b1010101010101010,
     0b1010101010101010,
@@ -84,8 +84,8 @@ pub const GEOMETRIC_PRODUCT_SIGN_LUT: [u16; 16] = [
 ];
 
 /// Sign of the reverse of a term, indexed by an `Axes`.
-pub const REVERSE_SIGN_LUT: u16 = 0b0111111011101000;
-pub const CONJUGATE_SIGN_LUT: u16 = 0b0001011101111110;
+const REVERSE_SIGN_LUT: u16 = 0b0111111011101000;
+const CONJUGATE_SIGN_LUT: u16 = 0b0001011101111110;
 
 impl Mul for Axes {
     type Output = Scalar;
