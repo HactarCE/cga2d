@@ -35,7 +35,7 @@ fn test_point_pair() {
         let pp = s * point(x1, y1) ^ point(x2, y2);
         assert!(!pp.is_flat(EPS));
 
-        let [mut out1, mut out2] = pp.unpack_point_pair();
+        let [mut out1, mut out2] = pp.unpack_point_pair().unwrap();
         if s < 0.0 {
             std::mem::swap(&mut out1, &mut out2);
         }

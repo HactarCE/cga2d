@@ -222,11 +222,15 @@ impl Blade for Blade2 {
     const GRADE: u8 = 2;
 }
 impl Blade2 {
-    /// Returns the pair of points in a point pair.
-    pub fn unpack_point_pair(self) -> [Blade1; 2] {
-        [1.0, -1.0].map(|sign| {
-            let multiplier = (NI << self).inv();
-            (multiplier << self) + (sign * self.mag() * multiplier)
+    /// Returns the pair of points in a point pair, or `None` the point pair is
+    /// imaginary.
+    pub fn unpack_point_pair(self) -> Option<[Blade1; 2]> {
+        let mag = self.mag2().sqrt();
+        mag.is_finite().then(|| {
+            [1.0, -1.0].map(|sign| {
+                let multiplier = (NI << self).inv();
+                (multiplier << self) + (sign * mag * multiplier)
+            })
         })
     }
 }
