@@ -5,7 +5,7 @@ version = "0.1.0"
 authors = ["Andrew Farkas"]
 edition = "2021"
 repository = "https://github.com/HactarCE/cga2d"
-keywords = ["math", "rotor", "geometric-algebra", "conformal-geometric-algebra", "2d"]
+keywords = ["math", "rotor", "geometric-algebra", "conformal-geometry", "2d"]
 categories = ["mathematics"]
 license = "MIT OR Apache-2.0"
 
