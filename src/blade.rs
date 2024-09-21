@@ -1,6 +1,6 @@
 use super::{Axes, Multivector, Scalar, Term, Wedge};
 
-/// ∞, also called nᵢ, representing the point at infinity.
+/// ∞, also called n ͚, representing the point at infinity.
 pub const NI: Blade1 = Blade1 {
     m: 1.0,
     p: 1.0,
@@ -133,7 +133,7 @@ impl Blade for Blade1 {
     const GRADE: u8 = 1;
 }
 impl Blade1 {
-    /// Returns the ∞ component of the blade (also called nᵢ).
+    /// Returns the ∞ component of the blade (also called n ͚).
     pub fn ni(self) -> Scalar {
         (self.m + self.p) / 2.0
     }

@@ -24,16 +24,27 @@ bitflags::bitflags! {
         /// y
         const Y = 0b1000;
 
+        /// e₋e₊
         const MP = 0b0011;
+        /// e₋x
         const MX = 0b0101;
+        /// e₊x
         const PX = 0b0110;
+        /// e₋e₊x
         const MPX = 0b0111;
+        /// e₋y
         const MY = 0b1001;
+        /// e₊y
         const PY = 0b1010;
+        /// e₋e₊y
         const MPY = 0b1011;
+        /// xy
         const XY = 0b1100;
+        /// e₋xy
         const MXY = 0b1101;
+        /// e₊xy
         const PXY = 0b1110;
+        /// e₋e₊xy
         const MPXY = 0b1111;
     }
 }
