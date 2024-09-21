@@ -25,6 +25,10 @@ impl Multivector for Rotoflector {
         Self::Zero
     }
 
+    fn has_same_terms_as(self, other: Self) -> bool {
+        std::mem::discriminant(&self) == std::mem::discriminant(&other)
+    }
+
     fn terms(self) -> Self::Terms {
         match self {
             Rotoflector::Zero => [Term::new(Axes::S, 0.0); 8],
@@ -116,6 +120,10 @@ impl Multivector for Rotor {
         ]
     }
 
+    fn has_same_terms_as(self, _other: Self) -> bool {
+        true
+    }
+
     fn get(&self, axes: crate::Axes) -> Option<&Scalar> {
         match axes {
             Axes::S => Some(&self.s),
@@ -199,6 +207,10 @@ impl Multivector for Flector {
             Term::new(Axes::MXY, self.mxy),
             Term::new(Axes::PXY, self.pxy),
         ]
+    }
+
+    fn has_same_terms_as(self, _other: Self) -> bool {
+        true
     }
 
     fn get(&self, axes: crate::Axes) -> Option<&Scalar> {

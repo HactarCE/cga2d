@@ -27,6 +27,20 @@ pub trait Blade: Multivector {
     {
         self.dual().wedge(other)
     }
+
+    /// Returns whether the blade is "flat" (whether one of its simple component
+    /// blades is ∞).
+    ///
+    /// `epsilon` is a small value used for comparison.
+    fn is_flat(self, epsilon: Scalar) -> bool
+    where
+        Self: Wedge<Blade1>,
+    {
+        self.wedge(NI)
+            .terms()
+            .into_iter()
+            .all(|t| t.coef.abs() <= epsilon)
+    }
 }
 
 impl Multivector for Scalar {
@@ -40,6 +54,10 @@ impl Multivector for Scalar {
 
     fn terms(self) -> Self::Terms {
         [Term::new(Axes::S, self)]
+    }
+
+    fn has_same_terms_as(self, _other: Self) -> bool {
+        true
     }
 
     fn get(&self, axes: Axes) -> Option<&Scalar> {
@@ -76,6 +94,10 @@ impl Multivector for Blade1 {
 
     fn zero() -> Self {
         Self::default()
+    }
+
+    fn has_same_terms_as(self, _other: Self) -> bool {
+        true
     }
 
     fn terms(self) -> [Term; 4] {
@@ -157,6 +179,10 @@ impl Multivector for Blade2 {
         Self::default()
     }
 
+    fn has_same_terms_as(self, _other: Self) -> bool {
+        true
+    }
+
     fn terms(self) -> [Term; 6] {
         [
             Term::new(Axes::MP, self.mp),
@@ -223,6 +249,10 @@ impl Multivector for Blade3 {
         Self::default()
     }
 
+    fn has_same_terms_as(self, _other: Self) -> bool {
+        true
+    }
+
     fn terms(self) -> [Term; 4] {
         [
             Term::new(Axes::MPX, self.mpx),
@@ -255,8 +285,61 @@ impl Multivector for Blade3 {
 impl Blade for Blade3 {
     const GRADE: u8 = 3;
 }
+impl Blade3 {
+    /// Returns the line or circle in Euclidean space.
+    ///
+    /// `epsilon` is a small value used for comparison.
+    pub fn unpack(self, epsilon: Scalar) -> LineOrCircle {
+        let dual = self.dual();
+        if approx::abs_diff_eq!(dual.m, dual.p, epsilon = epsilon) {
+            LineOrCircle::Line {
+                a: dual.x,
+                b: dual.y,
+                c: dual.p,
+            }
+        } else {
+            let no = dual.no();
+            let cx = dual.x / no;
+            let cy = dual.y / no;
+            let r2 = dual.mag2() / (no * no);
+            let r = r2.abs().sqrt() * r2.signum();
+            LineOrCircle::Circle { cx, cy, r }
+        }
+    }
+}
+impl From<LineOrCircle> for Blade3 {
+    fn from(value: LineOrCircle) -> Self {
+        match value {
+            LineOrCircle::Line { a, b, c } => Blade1 {
+                m: c,
+                p: c,
+                x: a,
+                y: b,
+            }
+            .dual(),
+            LineOrCircle::Circle { cx, cy, r } => crate::circle(crate::point(cx, cy), r),
+        }
+    }
+}
 
-/// 4-blade, used to represent pseduoscalar quantities.
+/// Euclidean line or circle.
+#[derive(Debug, Copy, Clone, PartialEq)]
+#[allow(missing_docs)]
+pub enum LineOrCircle {
+    /// Line described by the equation _ax+by=c_.
+    Line { a: Scalar, b: Scalar, c: Scalar },
+    /// Circle described by the equation _(x-cx)^2+(y-cy)^2=r^2_. If _r_ is
+    /// negative, then the circle is imaginary.
+    ///
+    /// Imaginary circles are actually circles with an _imaginary_ radius (so
+    /// their radius _squared_ is negative) but we represent them with a
+    /// negative radius for convenience.
+    ///
+    /// The radius may be zero, such as in the case of the dual of a point.
+    Circle { cx: Scalar, cy: Scalar, r: Scalar },
+}
+
+/// 4-blade, used to represent pseudoscalar quantities.
 #[derive(Debug, Default, Copy, Clone, PartialEq)]
 #[allow(missing_docs)]
 pub struct Pseudoscalar {
@@ -269,6 +352,10 @@ impl Multivector for Pseudoscalar {
 
     fn zero() -> Self {
         Self::default()
+    }
+
+    fn has_same_terms_as(self, _other: Self) -> bool {
+        true
     }
 
     fn terms(self) -> Self::Terms {

@@ -347,6 +347,32 @@ impl_multivector_dual!(Rotor);
 impl_multivector_dual!(Flector);
 impl_multivector_dual!(Rotoflector);
 
+macro_rules! impl_abs_diff_eq {
+    ($ty:ty) => {
+        impl approx::AbsDiffEq for $ty {
+            type Epsilon = Scalar;
+
+            fn default_epsilon() -> Self::Epsilon {
+                Scalar::default_epsilon()
+            }
+
+            fn abs_diff_eq(&self, other: &Self, epsilon: Self::Epsilon) -> bool {
+                self.has_same_terms_as(*other)
+                    && std::iter::zip(self.terms(), other.terms())
+                        .all(|(l, r)| approx::AbsDiffEq::abs_diff_eq(&l, &r, epsilon))
+            }
+        }
+    };
+}
+
+impl_abs_diff_eq!(Blade1);
+impl_abs_diff_eq!(Blade2);
+impl_abs_diff_eq!(Blade3);
+impl_abs_diff_eq!(Pseudoscalar);
+impl_abs_diff_eq!(Rotor);
+impl_abs_diff_eq!(Flector);
+impl_abs_diff_eq!(Rotoflector);
+
 pub(crate) fn multiply_and_grade_project<L, R, O>(lhs: L, rhs: R) -> O
 where
     L: Multivector,

@@ -24,6 +24,18 @@ impl Mul for Term {
     }
 }
 
+impl approx::AbsDiffEq for Term {
+    type Epsilon = Scalar;
+
+    fn default_epsilon() -> Self::Epsilon {
+        Scalar::default_epsilon()
+    }
+
+    fn abs_diff_eq(&self, other: &Self, epsilon: Self::Epsilon) -> bool {
+        self.axes == other.axes && approx::AbsDiffEq::abs_diff_eq(&self.coef, &other.coef, epsilon)
+    }
+}
+
 impl Term {
     /// Constructs a term.
     #[inline(always)]

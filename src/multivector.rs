@@ -26,6 +26,10 @@ pub trait Multivector:
     /// Returns an array of the terms in the blade.
     fn terms(self) -> Self::Terms;
 
+    /// Returns whether the terms of `self` and `other` have the same basis
+    /// vectors.
+    fn has_same_terms_as(self, other: Self) -> bool;
+
     /// Returns a coefficient of the blade.
     fn get(&self, axes: Axes) -> Option<&Scalar>;
     /// Returns a mutable reference to a coefficient of the blade.
