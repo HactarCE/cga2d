@@ -1,7 +1,13 @@
 [package]
 name = "cga2d"
+description = "2D Conformal Geometric Algebra primitives"
 version = "0.1.0"
+authors = ["Andrew Farkas"]
 edition = "2021"
+repository = "https://github.com/HactarCE/cga2d"
+keywords = ["math", "rotor", "geometric-algebra", "conformal-geometric-algebra", "2d"]
+categories = ["mathematics"]
+license = "MIT OR Apache-2.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
