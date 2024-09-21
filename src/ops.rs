@@ -307,9 +307,9 @@ impl_multivector_binary_ops!(
     (Scalar) * (Blade2) -> Blade2;
     (Scalar) * (Blade3) -> Blade3;
     (Scalar) * (Pseudoscalar) -> Pseudoscalar;
-    (Scalar) * (Rotor) -> Pseudoscalar;
-    (Scalar) * (Flector) -> Pseudoscalar;
-    (Scalar) * (Rotoflector) -> Pseudoscalar;
+    (Scalar) * (Rotor) -> Rotor;
+    (Scalar) * (Flector) -> Flector;
+    (Scalar) * (Rotoflector) -> Rotoflector;
 
     (Blade1) * (Blade1) -> Rotor;
     (Blade1) * (Blade2) -> Flector;

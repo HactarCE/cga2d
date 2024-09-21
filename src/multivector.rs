@@ -81,7 +81,7 @@ pub trait Multivector:
 
     /// Returns the termwise reverse of the multivector.
     fn rev(self) -> Self {
-        crate::ops::grade_project_and_sum_terms(self.terms().into_iter().map(|t| t.reverse()))
+        crate::ops::grade_project_and_sum_terms(self.terms().into_iter().map(|t| t.rev()))
     }
 
     /// Returns the inverse of the multivector.
@@ -98,7 +98,7 @@ pub trait Multivector:
                 inner.terms().as_ref(),
                 self.terms().as_ref()
             )
-            .map(|(&l, &m, &r)| l * m * r),
+            .map(|(&l, &m, &r)| l * m * r.conj()),
         )
     }
 }

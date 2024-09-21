@@ -108,12 +108,12 @@ impl Mul for Axes {
 
 impl Axes {
     /// Returns the sign of the reverse of the axes.
-    pub fn reverse(self) -> Scalar {
+    pub fn rev_sign(self) -> Scalar {
         get_bit_as_sign(REVERSE_SIGN_LUT, self.bits())
     }
 
     /// Returns the sign of the conjugate of the axes.
-    pub fn conjugate(self) -> Scalar {
+    pub fn conj_sign(self) -> Scalar {
         get_bit_as_sign(CONJUGATE_SIGN_LUT, self.bits())
     }
 }

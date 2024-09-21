@@ -18,8 +18,8 @@
 //! let circ = cga2d::circle(cga2d::point(3.0, 1.5), 3.0);
 //! assert_eq!(circ.sandwich(NI).unpack_point(), (3.0, 1.5));
 //!
-//! let rot90: Rotor = cga2d::line(1.0, 0.0, 0.0) * cga2d::line(1.0, 1.0, 0.0);
-//! assert_eq!(rot90.sandwich(cga2d::point(3.0, 4.0)).unpack_point(), (-4.0, 3.0));
+//! let rot90_ccw: Rotor = cga2d::line(1.0, 1.0, 0.0) * cga2d::line(1.0, 0.0, 0.0);
+//! assert_eq!(rot90_ccw.sandwich(cga2d::point(3.0, 4.0)).unpack_point(), (-4.0, 3.0));
 //! ```
 //!
 //! # Multivector types
@@ -95,7 +95,13 @@
 //! ## From terms
 //!
 //! ```rust
-//!
+//! # use cga2d::prelude::*;
+//! let vector: Blade1 = [
+//!     cga2d::Term::new(cga2d::Axes::X, 3.0),
+//!     cga2d::Term::new(cga2d::Axes::X, 4.0)
+//! ]
+//! .into_iter()
+//! .sum();
 //! ```
 //!
 //! ## From blades
@@ -109,7 +115,13 @@
 //! let circle_inversion = Flector::from(circle);
 //!
 //! let central_inversion = Rotor::from(NI ^ NO);
-//! assert_eq!(central_inversion.sandwich(circle), cga2d::circle(-center, 7.0));
+//! let inverted_circle = central_inversion.sandwich(circle);
+//! let epsilon = 0.0001; // comparison threshold
+//! assert_eq!(inverted_circle.unpack(epsilon), cga2d::LineOrCircle::Circle {
+//!     cx: -3.0,
+//!     cy: -4.0,
+//!     r: 7.0
+//! });
 //! ```
 //!
 //! # Operations

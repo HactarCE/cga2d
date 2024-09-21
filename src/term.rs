@@ -96,13 +96,13 @@ impl Term {
 
     /// Returns the reverse of the term.
     #[must_use]
-    pub fn reverse(self) -> Self {
-        Self::new(self.axes, self.coef * self.axes.reverse())
+    pub fn rev(self) -> Self {
+        Self::new(self.axes, self.coef * self.axes.rev_sign())
     }
 
-    /// Returns the reverse of the term.
+    /// Returns the conjugate of the term.
     #[must_use]
-    pub fn conjugate(self) -> Self {
-        Self::new(self.axes, self.coef * self.axes.reverse())
+    pub fn conj(self) -> Self {
+        Self::new(self.axes, self.coef * self.axes.conj_sign())
     }
 }

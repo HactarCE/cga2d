@@ -124,15 +124,14 @@ fn test_point_reflection() {
         assert_approx_eq(x, -1.0);
         assert_approx_eq(y, -4.0);
 
-        let [(x1, y1), (x2, y2)] = central_inversion
-            .sandwich(pp)
+        let [(x1, y1), (x2, y2)] = (-central_inversion.sandwich(pp))
             .unpack_point_pair()
             .unwrap()
             .map(|p| p.unpack_point());
-        assert_approx_eq(x1, 1.0);
-        assert_approx_eq(y1, 4.0);
-        assert_approx_eq(x2, 6.0);
-        assert_approx_eq(y2, -7.0);
+        assert_approx_eq(x1, -1.0);
+        assert_approx_eq(y1, -4.0);
+        assert_approx_eq(x2, -6.0);
+        assert_approx_eq(y2, 7.0);
 
         match central_inversion.sandwich(circ).unpack(EPS) {
             LineOrCircle::Line { .. } => {
