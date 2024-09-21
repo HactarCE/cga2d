@@ -80,6 +80,8 @@ impl Blade for Scalar {
 
 /// 1-blade, used to represent points, vectors, and round points.
 #[derive(Debug, Default, Copy, Clone, PartialEq)]
+#[cfg_attr(feature = "bytemuck", derive(bytemuck::Zeroable, bytemuck::NoUninit))]
+#[repr(C)]
 #[allow(missing_docs)]
 pub struct Blade1 {
     pub m: Scalar,
@@ -161,6 +163,8 @@ impl Blade1 {
 /// 2-blade, used to represent point pairs (real and imaginary), tangent
 /// vectors, and flat points.
 #[derive(Debug, Default, Copy, Clone, PartialEq)]
+#[cfg_attr(feature = "bytemuck", derive(bytemuck::Zeroable, bytemuck::NoUninit))]
+#[repr(C)]
 #[allow(missing_docs)]
 pub struct Blade2 {
     pub mp: Scalar,
@@ -242,6 +246,8 @@ impl Blade2 {
 
 /// 3-blade, used to represent circles (real and imaginary).
 #[derive(Debug, Default, Copy, Clone, PartialEq)]
+#[cfg_attr(feature = "bytemuck", derive(bytemuck::Zeroable, bytemuck::NoUninit))]
+#[repr(C)]
 #[allow(missing_docs)]
 pub struct Blade3 {
     pub mpx: Scalar,
@@ -350,6 +356,8 @@ pub enum LineOrCircle {
 
 /// 4-blade, used to represent pseudoscalar quantities.
 #[derive(Debug, Default, Copy, Clone, PartialEq)]
+#[cfg_attr(feature = "bytemuck", derive(bytemuck::Zeroable, bytemuck::NoUninit))]
+#[repr(C)]
 #[allow(missing_docs)]
 pub struct Pseudoscalar {
     pub mpxy: Scalar,

@@ -8,6 +8,8 @@ use super::Scalar;
 bitflags::bitflags! {
     /// Subset of 2D CGA basis vectors.
     #[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash)]
+    #[cfg_attr(feature = "bytemuck", derive(bytemuck::Zeroable, bytemuck::NoUninit))]
+    #[repr(C)]
     pub struct Axes: u8 {
         /// Scalar
         const S = 0b0000;

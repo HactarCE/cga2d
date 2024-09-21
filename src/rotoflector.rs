@@ -96,6 +96,8 @@ impl_from_terms!((Pseudoscalar) -> Rotoflector);
 /// Multivector in the even subalgebra of 2D CGA, used to represent
 /// orientation-preserving (i.e., non-reflecting) conformal transformations.
 #[derive(Debug, Copy, Clone, PartialEq)]
+#[cfg_attr(feature = "bytemuck", derive(bytemuck::Zeroable, bytemuck::NoUninit))]
+#[repr(C)]
 #[allow(missing_docs)]
 pub struct Rotor {
     pub s: Scalar,
@@ -195,6 +197,8 @@ impl_from_terms!((Pseudoscalar) -> Rotor);
 /// Multivector in the odd subalgebra of 2D CGA, used to represent
 /// non-orientation-preserving (i.e., reflecting) conformal transformations.
 #[derive(Debug, Default, Copy, Clone, PartialEq)]
+#[cfg_attr(feature = "bytemuck", derive(bytemuck::Zeroable, bytemuck::NoUninit))]
+#[repr(C)]
 #[allow(missing_docs)]
 pub struct Flector {
     pub m: Scalar,

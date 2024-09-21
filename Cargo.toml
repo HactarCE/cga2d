@@ -14,4 +14,8 @@ license = "MIT OR Apache-2.0"
 [dependencies]
 approx = "0.5.1"
 bitflags = "2.6.0"
+bytemuck = { version = "1.18.0", optional = true, features = ["derive"] }
 itertools = "0.13.0"
+
+[features]
+bytemuck = ["dep:bytemuck", "bitflags/bytemuck"]
