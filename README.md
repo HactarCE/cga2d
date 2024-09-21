@@ -1,6 +1,6 @@
 # cga2d
 
-![Crates.io Version](https://img.shields.io/crates/v/cga2d) ![docs.rs](https://img.shields.io/docsrs/cga2d)
+[![Crates.io Version](https://img.shields.io/crates/v/cga2d)][crates.io] [![docs.rs](https://img.shields.io/docsrs/cga2d)][docs.rs]
 
 `cga2d` is a library for 2D Conformal Geometric Algebra with static types for various objects. It has traits for `Multivector` and `Blade` and types for blades of each grade, in addition to `Rotor`, `Flector`, and `Rotoflector`.
 
@@ -10,7 +10,8 @@ Read [the documentation][docs] for more details.
 
 The scalar type is `f64`. I'm open to adding support for other scalar types, probably via feature flags. I'd prefer not to use generics, because that would greatly hinder ergonomics.
 
-[docs]: https://docs.rs/cga2d/latest/cga2d/
+[crates.io]: https://crates.io/crates/cga2d
+[docs.rs]: https://docs.rs/cga2d/latest/cga2d/
 
 ## Known issues
 
