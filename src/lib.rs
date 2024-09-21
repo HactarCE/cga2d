@@ -20,14 +20,14 @@ mod axes;
 mod blade;
 mod multivector;
 mod ops;
-mod rotor;
+mod rotoflector;
 mod term;
 
 pub use axes::Axes;
 pub use blade::{Blade, Blade1, Blade2, Blade3, Pseudoscalar, NI, NO};
 pub use multivector::Multivector;
 pub use ops::Wedge;
-pub use rotor::Rotor;
+pub use rotoflector::{Flector, Rotoflector, Rotor};
 pub use term::Term;
 
 /// 0-blade, used to represent scalar quantities.

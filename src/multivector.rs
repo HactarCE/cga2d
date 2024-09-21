@@ -10,7 +10,6 @@ use super::{Axes, Scalar, Term};
 /// Multivector supporting an arbitrary subset of terms.
 pub trait Multivector:
     fmt::Debug
-    + Default
     + Copy
     + PartialEq
     + Add<Output = Self>
@@ -31,6 +30,9 @@ pub trait Multivector:
     fn get(&self, axes: Axes) -> Option<&Scalar>;
     /// Returns a mutable reference to a coefficient of the blade.
     fn get_mut(&mut self, axes: Axes) -> Option<&mut Scalar>;
+
+    /// Returns a multivector equal to zero.
+    fn zero() -> Self;
 
     /// Returns the dual of the blade, which results from right-multiplying the
     /// blade by the pseudoscalar.

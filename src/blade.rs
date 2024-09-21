@@ -34,6 +34,10 @@ impl Multivector for Scalar {
 
     type Dual = Pseudoscalar;
 
+    fn zero() -> Self {
+        Self::default()
+    }
+
     fn terms(self) -> Self::Terms {
         [Term::new(Axes::S, self)]
     }
@@ -69,6 +73,10 @@ impl Multivector for Blade1 {
     type Terms = [Term; 4];
 
     type Dual = Blade3;
+
+    fn zero() -> Self {
+        Self::default()
+    }
 
     fn terms(self) -> [Term; 4] {
         [
@@ -145,6 +153,10 @@ impl Multivector for Blade2 {
 
     type Dual = Blade2;
 
+    fn zero() -> Self {
+        Self::default()
+    }
+
     fn terms(self) -> [Term; 6] {
         [
             Term::new(Axes::MP, self.mp),
@@ -207,6 +219,10 @@ impl Multivector for Blade3 {
 
     type Dual = Blade1;
 
+    fn zero() -> Self {
+        Self::default()
+    }
+
     fn terms(self) -> [Term; 4] {
         [
             Term::new(Axes::MPX, self.mpx),
@@ -250,6 +266,10 @@ impl Multivector for Pseudoscalar {
     type Terms = [Term; 1];
 
     type Dual = Scalar;
+
+    fn zero() -> Self {
+        Self::default()
+    }
 
     fn terms(self) -> Self::Terms {
         [Term::new(Axes::MPXY, self.mpxy)]
