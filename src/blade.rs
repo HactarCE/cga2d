@@ -233,6 +233,11 @@ impl Blade2 {
             })
         })
     }
+
+    /// Rotates a tangent vector counterclockwise by `angle` (in radians).
+    pub fn rotate(self, angle: Scalar) -> Self {
+        self * angle.cos() + self.dual() * angle.sin()
+    }
 }
 
 /// 3-blade, used to represent circles (real and imaginary).
