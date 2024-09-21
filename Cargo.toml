@@ -14,4 +14,4 @@ license = "MIT OR Apache-2.0"
 [dependencies]
 approx = "0.5.1"
 bitflags = "2.6.0"
-itertools = "0.12.1"
+itertools = "0.13.0"
