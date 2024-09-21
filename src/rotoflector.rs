@@ -1,4 +1,16 @@
-use super::{Axes, Multivector, Scalar, Term};
+use crate::Pseudoscalar;
+
+use super::{Axes, Blade1, Blade2, Blade3, Multivector, Scalar, Term};
+
+macro_rules! impl_from_terms {
+    (($from:ty) -> $to:ty) => {
+        impl From<$from> for $to {
+            fn from(value: $from) -> Self {
+                crate::ops::grade_project_and_sum_terms(value.terms())
+            }
+        }
+    };
+}
 
 /// Multivector in either the even or odd subalgebra of 2D CGA, used to
 /// represent an arbitrary conformal transformation.
@@ -65,6 +77,21 @@ impl Rotoflector {
         Self::Rotor(Rotor::ident())
     }
 }
+impl From<Rotor> for Rotoflector {
+    fn from(value: Rotor) -> Self {
+        Self::Rotor(value)
+    }
+}
+impl From<Flector> for Rotoflector {
+    fn from(value: Flector) -> Self {
+        Self::Flector(value)
+    }
+}
+impl_from_terms!((Scalar) -> Rotoflector);
+impl_from_terms!((Blade1) -> Rotoflector);
+impl_from_terms!((Blade2) -> Rotoflector);
+impl_from_terms!((Blade3) -> Rotoflector);
+impl_from_terms!((Pseudoscalar) -> Rotoflector);
 
 /// Multivector in the even subalgebra of 2D CGA, used to represent
 /// orientation-preserving (i.e., non-reflecting) conformal transformations.
@@ -161,6 +188,9 @@ impl Rotor {
         }
     }
 }
+impl_from_terms!((Scalar) -> Rotor);
+impl_from_terms!((Blade2) -> Rotor);
+impl_from_terms!((Pseudoscalar) -> Rotor);
 
 /// Multivector in the odd subalgebra of 2D CGA, used to represent
 /// non-orientation-preserving (i.e., reflecting) conformal transformations.
@@ -241,3 +271,5 @@ impl Multivector for Flector {
         }
     }
 }
+impl_from_terms!((Blade1) -> Flector);
+impl_from_terms!((Blade3) -> Flector);

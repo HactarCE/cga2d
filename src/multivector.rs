@@ -60,14 +60,23 @@ pub trait Multivector:
         self.dot(self)
     }
 
-    /// Returns the magnitude of the blade.
-    fn mag(self) -> Scalar {
-        self.mag2().sqrt()
+    /// Returns the absolute value of the magnitude of the blade.
+    fn abs_mag(self) -> Scalar {
+        let mag2 = self.mag2();
+        mag2.abs().sqrt()
+    }
+
+    /// Returns the magnitude of the blade. Real magnitudes are represented
+    /// using positive numbers and imaginary magnitudes are represented using
+    /// negative numbers.
+    fn signed_mag(self) -> Scalar {
+        let mag2 = self.mag2();
+        mag2.abs().sqrt() * mag2.signum()
     }
 
     /// Normalizes a multivector with respect to its magnitude.
     fn normalize(self) -> Self {
-        self / self.mag()
+        self / self.abs_mag()
     }
 
     /// Returns the termwise reverse of the multivector.

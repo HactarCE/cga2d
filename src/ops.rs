@@ -3,8 +3,8 @@
 use std::fmt;
 use std::iter::Sum;
 use std::ops::{
-    Add, AddAssign, BitAnd, BitXor, Div, DivAssign, Index, IndexMut, Mul, MulAssign, Not, Shl, Sub,
-    SubAssign,
+    Add, AddAssign, BitAnd, BitXor, Div, DivAssign, Index, IndexMut, Mul, MulAssign, Neg, Not, Shl,
+    Sub, SubAssign,
 };
 
 use super::{
@@ -76,6 +76,26 @@ impl_display_terms!(Rotor);
 impl_display_terms!(Flector);
 impl_display_terms!(Rotoflector);
 
+macro_rules! impl_neg {
+    ($ty:ty) => {
+        impl Neg for $ty {
+            type Output = Self;
+
+            fn neg(self) -> Self::Output {
+                grade_project_and_sum_terms(self.terms().map(|t| -t))
+            }
+        }
+    };
+}
+
+impl_neg!(Blade1);
+impl_neg!(Blade2);
+impl_neg!(Blade3);
+impl_neg!(Pseudoscalar);
+impl_neg!(Rotor);
+impl_neg!(Flector);
+impl_neg!(Rotoflector);
+
 macro_rules! impl_add_sub_term_ops {
     ($type:ty) => {
         impl<T> Add<T> for $type
@@ -138,6 +158,21 @@ impl_add_sub_term_ops!(Pseudoscalar);
 impl_add_sub_term_ops!(Rotor);
 impl_add_sub_term_ops!(Flector);
 impl_add_sub_term_ops!(Rotoflector);
+
+impl<T: Add<Term>> Add<T> for Term {
+    type Output = T::Output;
+
+    fn add(self, rhs: T) -> Self::Output {
+        rhs + self
+    }
+}
+impl<T: Neg<Output = T> + Add<Term>> Sub<T> for Term {
+    type Output = <T as Add<Term>>::Output;
+
+    fn sub(self, rhs: T) -> Self::Output {
+        -rhs + self
+    }
+}
 
 macro_rules! impl_mul_div_scalar_ops {
     ($type:ty) => {
@@ -234,6 +269,7 @@ macro_rules! impl_multivector_binary_ops {
     };
     (($lhs:ty) * ($rhs:ty) -> $out:ty) => {
         impl_multivector_binary_ops!($lhs, $rhs, $out, Mul, mul, *);
+        impl_multivector_binary_ops!(($lhs) / ($rhs) -> $out); // also implement division
     };
     (($lhs:ty) << ($rhs:ty) -> $out:ty) => {
         impl_multivector_binary_ops!($lhs, $rhs, $out, Shl, shl, *);
@@ -252,11 +288,7 @@ macro_rules! impl_multivector_binary_ops {
             type Output = $out;
 
             fn div(self, rhs: $rhs) -> Self::Output {
-                let mut ret = Self::zero();
-                for term in self.terms() {
-                    ret[term.axes] /= rhs;
-                }
-                self
+                self * rhs.inv()
             }
         }
     };

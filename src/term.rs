@@ -1,5 +1,5 @@
 use std::fmt;
-use std::ops::Mul;
+use std::ops::{Mul, Neg, Not};
 
 use super::{Axes, Scalar};
 
@@ -23,6 +23,15 @@ impl fmt::Display for Term {
     }
 }
 
+impl Neg for Term {
+    type Output = Term;
+
+    fn neg(self) -> Self::Output {
+        let Self { axes, coef } = self;
+        Term { axes, coef: -coef }
+    }
+}
+
 impl Mul for Term {
     type Output = Term;
 
@@ -33,6 +42,14 @@ impl Mul for Term {
             axes: self.axes ^ rhs.axes,
             coef: self.coef * rhs.coef * sign,
         }
+    }
+}
+
+impl Not for Term {
+    type Output = Term;
+
+    fn not(self) -> Self::Output {
+        self.dual()
     }
 }
 
