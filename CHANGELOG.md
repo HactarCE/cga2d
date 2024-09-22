@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- `approx::AbsDiffEq<Epsilon = Scalar>` bound on `Multivector`
+
+### Fixed
+
+- `.unpack_point_pair()` with flat points (one point is `NI`)
+
 ## 0.2.1 - 2024-09-22
 
 ### Fixed

@@ -9,6 +9,21 @@ fn assert_approx_eq<T: fmt::Debug + approx::AbsDiffEq<Epsilon = Scalar>>(a: T, b
     approx::assert_abs_diff_eq!(a, b, epsilon = EPS);
 }
 
+#[track_caller]
+fn assert_eq_up_to_scale<M: Multivector>(a: M, b: M) {
+    let max_axes = a
+        .terms()
+        .into_iter()
+        .max_by(|t1, t2| f64::total_cmp(&t1.coef.abs(), &t2.coef.abs()))
+        .unwrap()
+        .axes;
+    approx::assert_abs_diff_eq!(
+        a / *a.get(max_axes).unwrap_or(&0.0),
+        b / *b.get(max_axes).unwrap_or(&0.0),
+        epsilon = EPS,
+    );
+}
+
 const SCALARS: &[Scalar] = &[1.0, 10.0, -1.0, -10.0];
 
 #[test]
@@ -30,26 +45,25 @@ fn test_point() {
 #[test]
 fn test_point_pair() {
     for &s in SCALARS {
-        let ((x1, y1), (x2, y2)) = ((1.0, 2.0), (3.0, -4.0));
+        for (p1, p2) in [
+            (crate::point(1.0, 2.0), crate::point(3.0, -4.0)),
+            (NO, NI),
+            (NI, NO),
+            (point(1.0, 2.0), NI),
+            (NI, point(1.0, 2.0)),
+        ] {
+            let pp = s * p1 ^ p2;
 
-        let pp = s * point(x1, y1) ^ point(x2, y2);
-        assert!(!pp.is_flat(EPS));
+            assert_eq!(pp.is_flat(EPS), p1 == NI || p2 == NI);
 
-        let [mut out1, mut out2] = pp.unpack_point_pair().unwrap();
-        if s < 0.0 {
-            std::mem::swap(&mut out1, &mut out2);
+            let [mut p1_out, mut p2_out] = pp.unpack_point_pair().unwrap();
+            if s < 0.0 {
+                std::mem::swap(&mut p1_out, &mut p2_out);
+            }
+            assert_eq_up_to_scale(p1, p1_out);
+            assert_eq_up_to_scale(p2, p2_out);
         }
-
-        let (x1_out, y1_out) = out1.unpack_point();
-        let (x2_out, y2_out) = out2.unpack_point();
-        assert_approx_eq(x1, x1_out);
-        assert_approx_eq(y1, y1_out);
-        assert_approx_eq(x2, x2_out);
-        assert_approx_eq(y2, y2_out);
     }
-
-    assert!((NO ^ NI).is_flat(EPS));
-    assert!((point(1.0, 2.0) ^ NI).is_flat(EPS));
 }
 
 #[test]

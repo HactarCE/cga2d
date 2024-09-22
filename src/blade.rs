@@ -230,12 +230,19 @@ impl Blade2 {
     /// imaginary.
     pub fn unpack_point_pair(self) -> Option<[Blade1; 2]> {
         let mag = self.mag2().sqrt();
-        mag.is_finite().then(|| {
-            [1.0, -1.0].map(|sign| {
-                let multiplier = (NI << self).inv();
-                (multiplier << self) + (sign * mag * multiplier)
-            })
-        })
+
+        // We need to use an arbitrary point that is not in the point pair. Of
+        // these three points, there is guaranteed to be one with a nonzero
+        // result.
+        let candidates = [NI, NO, crate::point(1.0, 0.0)];
+        let multiplier = candidates
+            .iter()
+            .map(|&arbitrary| arbitrary << self)
+            .max_by(|a, b| f64::total_cmp(&a.mag2(), &b.mag2()))?
+            .inv();
+
+        mag.is_finite()
+            .then(|| [1.0, -1.0].map(|sign| (multiplier << self) + (sign * mag * multiplier)))
     }
 
     /// Rotates a tangent vector counterclockwise by `angle` (in radians).

@@ -16,6 +16,7 @@ pub trait Multivector:
     + Sub<Output = Self>
     + Mul<Scalar, Output = Self>
     + Div<Scalar, Output = Self>
+    + approx::AbsDiffEq<Epsilon = Scalar>
 {
     /// Array type `[Term; N]` of terms in the blade.
     type Terms: Copy + AsRef<[Term]> + IntoIterator<Item = Term>;
