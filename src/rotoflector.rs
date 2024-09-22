@@ -186,7 +186,15 @@ impl Rotor {
     pub fn ident() -> Self {
         Self {
             s: 1.0,
-            ..Default::default()
+
+            mp: 0.0,
+            mx: 0.0,
+            px: 0.0,
+            my: 0.0,
+            py: 0.0,
+            xy: 0.0,
+
+            mpxy: 0.0,
         }
     }
 }
