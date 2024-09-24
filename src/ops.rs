@@ -174,6 +174,8 @@ impl<T: Neg<Output = T> + Add<Term>> Sub<T> for Term {
     }
 }
 
+/// Implements `MulAssign` and `DivAssign` (which isn't possible for most of our
+/// multiplication & division operations).
 macro_rules! impl_mul_div_scalar_ops {
     ($type:ty) => {
         impl<T> Mul<T> for $type
@@ -307,34 +309,61 @@ impl_multivector_binary_ops!(
     (Scalar) * (Blade2) -> Blade2;
     (Scalar) * (Blade3) -> Blade3;
     (Scalar) * (Pseudoscalar) -> Pseudoscalar;
-    (Scalar) * (Rotor) -> Rotor;
-    (Scalar) * (Flector) -> Flector;
-    (Scalar) * (Rotoflector) -> Rotoflector;
 
     (Blade1) * (Blade1) -> Rotor;
     (Blade1) * (Blade2) -> Flector;
     (Blade1) * (Blade3) -> Rotor;
-    (Blade1) * (Pseudoscalar) -> Flector;
+    (Blade1) * (Pseudoscalar) -> Blade3;
 
     (Blade2) * (Blade1) -> Flector;
     (Blade2) * (Blade2) -> Rotor;
     (Blade2) * (Blade3) -> Flector;
-    (Blade2) * (Pseudoscalar) -> Rotor;
+    (Blade2) * (Pseudoscalar) -> Blade2;
 
     (Blade3) * (Blade1) -> Rotor;
     (Blade3) * (Blade2) -> Flector;
     (Blade3) * (Blade3) -> Rotor;
-    (Blade3) * (Pseudoscalar) -> Flector;
+    (Blade3) * (Pseudoscalar) -> Blade1;
 
     (Pseudoscalar) * (Blade1) -> Flector;
     (Pseudoscalar) * (Blade2) -> Rotor;
     (Pseudoscalar) * (Blade3) -> Flector;
-    (Pseudoscalar) * (Pseudoscalar) -> Rotor;
+    (Pseudoscalar) * (Pseudoscalar) -> Scalar;
 
+    (Scalar) * (Rotor) -> Rotor;
+    (Blade1) * (Rotor) -> Flector;
+    (Blade2) * (Rotor) -> Rotor;
+    (Blade3) * (Rotor) -> Flector;
+
+    (Scalar) * (Flector) -> Flector;
+    (Blade1) * (Flector) -> Rotor;
+    (Blade2) * (Flector) -> Flector;
+    (Blade3) * (Flector) -> Rotor;
+
+    (Pseudoscalar) * (Rotor) -> Rotor;
+    (Pseudoscalar) * (Flector) -> Flector;
+
+    (Rotor) * (Blade1) -> Flector;
+    (Rotor) * (Blade2) -> Rotor;
+    (Rotor) * (Blade3) -> Flector;
+    (Rotor) * (Pseudoscalar) -> Rotor;
     (Rotor) * (Rotor) -> Rotor;
     (Rotor) * (Flector) -> Flector;
+
+    (Flector) * (Blade1) -> Rotor;
+    (Flector) * (Blade2) -> Flector;
+    (Flector) * (Blade3) -> Rotor;
+    (Flector) * (Pseudoscalar) -> Flector;
     (Flector) * (Rotor) -> Flector;
     (Flector) * (Flector) -> Rotor;
+
+    (Scalar) * (Rotoflector) -> Rotoflector;
+    (Blade1) * (Rotoflector) -> Rotoflector;
+    (Blade2) * (Rotoflector) -> Rotoflector;
+    (Blade3) * (Rotoflector) -> Rotoflector;
+    (Pseudoscalar) * (Rotoflector) -> Rotoflector;
+    (Rotor) * (Rotoflector) -> Rotoflector;
+    (Flector) * (Rotoflector) -> Rotoflector;
 
     (Rotoflector) * (Blade1) -> Rotoflector;
     (Rotoflector) * (Blade2) -> Rotoflector;
@@ -342,13 +371,6 @@ impl_multivector_binary_ops!(
     (Rotoflector) * (Pseudoscalar) -> Rotoflector;
     (Rotoflector) * (Rotor) -> Rotoflector;
     (Rotoflector) * (Flector) -> Rotoflector;
-
-    (Blade1) * (Rotoflector) -> Rotoflector;
-    (Blade2) * (Rotoflector) -> Rotoflector;
-    (Blade3) * (Rotoflector) -> Rotoflector;
-    (Pseudoscalar) * (Rotoflector) -> Rotoflector;
-    (Rotor) * (Rotoflector) -> Rotoflector;
-    (Flector) * (Rotoflector) -> Rotoflector;
 
     (Rotoflector) * (Rotoflector) -> Rotoflector;
 

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- Multiplication between rotors/flectors and blades
+
 ## 0.2.2 - 2024-09-22
 
 ### Added
