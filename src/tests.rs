@@ -173,3 +173,16 @@ fn test_tangent_vector_rotate() {
 
     assert_approx_eq(tangent_vector_y, expected_tangent_vector_y);
 }
+
+#[test]
+fn test_rotate() {
+    let r = rotate(std::f64::consts::FRAC_PI_2);
+    assert_eq_up_to_scale(r.sandwich(point(1.0, -3.0)), point(3.0, 1.0));
+}
+
+#[test]
+fn test_scale() {
+    let r = scale(13.0);
+    assert_eq_up_to_scale(r.sandwich(point(1.0, -3.0)), point(13.0, -39.0));
+    assert_approx_eq(r.mag2(), 1.0);
+}

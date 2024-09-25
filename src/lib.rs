@@ -263,5 +263,25 @@ pub fn line(a: Scalar, b: Scalar, c: Scalar) -> Blade3 {
     .dual()
 }
 
+/// Constructs a rotor that rotates by `angle`, fixing the origin.
+pub fn rotate(angle: Scalar) -> Rotor {
+    let half_angle = 0.5 * angle;
+    let mut r = Rotor::ident();
+    r.s = half_angle.cos();
+    r.xy = -half_angle.sin();
+    r
+}
+
+/// Constructs a rotor that scales by `factor`, fixing the origin.
+pub fn scale(factor: Scalar) -> Rotor {
+    let recip_factor = factor.recip();
+    let recip_divisor = (2.0 + 2.0 * recip_factor * recip_factor).sqrt().recip();
+    let mut r = Rotor::ident();
+    r.s = (1.0 + recip_factor) * recip_divisor;
+    r.mp = (1.0 - recip_factor) * recip_divisor;
+
+    r
+}
+
 #[cfg(test)]
 mod tests;
