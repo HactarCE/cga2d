@@ -61,8 +61,8 @@ impl Multivector for Rotoflector {
         match self {
             Rotoflector::Zero => {
                 *self = match axes.grade() % 2 {
-                    0 => Rotoflector::Rotor(Rotor::default()),
-                    _ => Rotoflector::Flector(Flector::default()),
+                    0 => Rotoflector::Rotor(Rotor::zero()),
+                    _ => Rotoflector::Flector(Flector::zero()),
                 };
                 self.get_mut(axes)
             }
