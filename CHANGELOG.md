@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `rotate(angle: Scalar) -> Rotor`
 - `scale(factor: Scalar) -> Rotor`
 
+### Fixed
+
+- `Rotoflector` operations having wrong scalar component
+
 ## 0.3.0 - 2024-09-24
 
 ### Added

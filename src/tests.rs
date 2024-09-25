@@ -186,3 +186,10 @@ fn test_scale() {
     assert_eq_up_to_scale(r.sandwich(point(1.0, -3.0)), point(13.0, -39.0));
     assert_approx_eq(r.mag2(), 1.0);
 }
+
+#[test]
+fn test_rotoflector() {
+    let rot = Rotoflector::from(rotate(std::f64::consts::FRAC_PI_2)); // rotate 90 degree counterclockwise
+    let refl = Rotoflector::from(line(1.0, 0.0, 1.0)); // reflect over x=1
+    assert_eq_up_to_scale((rot * refl).sandwich(point(5.0, -2.0)), point(2.0, -3.0));
+}
