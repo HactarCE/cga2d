@@ -1,11 +1,14 @@
 #![allow(clippy::suspicious_arithmetic_impl)]
 
 use std::fmt;
+use std::hash::Hash;
 use std::iter::Sum;
 use std::ops::{
     Add, AddAssign, BitAnd, BitXor, Div, DivAssign, Index, IndexMut, Mul, MulAssign, Neg, Not, Shl,
     Sub, SubAssign,
 };
+
+use approx_collections::{ApproxEq, ApproxEqZero, ApproxHash, ApproxHasher, Precision};
 
 use super::{
     Axes, Blade, Blade1, Blade2, Blade3, Flector, Multivector, Pseudoscalar, Rotoflector, Rotor,
@@ -427,32 +430,6 @@ impl_multivector_dual!(Rotor);
 impl_multivector_dual!(Flector);
 impl_multivector_dual!(Rotoflector);
 
-macro_rules! impl_abs_diff_eq {
-    ($type:ty) => {
-        impl approx::AbsDiffEq for $type {
-            type Epsilon = Scalar;
-
-            fn default_epsilon() -> Self::Epsilon {
-                Scalar::default_epsilon()
-            }
-
-            fn abs_diff_eq(&self, other: &Self, epsilon: Self::Epsilon) -> bool {
-                self.has_same_terms_as(*other)
-                    && std::iter::zip(self.terms(), other.terms())
-                        .all(|(l, r)| approx::AbsDiffEq::abs_diff_eq(&l, &r, epsilon))
-            }
-        }
-    };
-}
-
-impl_abs_diff_eq!(Blade1);
-impl_abs_diff_eq!(Blade2);
-impl_abs_diff_eq!(Blade3);
-impl_abs_diff_eq!(Pseudoscalar);
-impl_abs_diff_eq!(Rotor);
-impl_abs_diff_eq!(Flector);
-impl_abs_diff_eq!(Rotoflector);
-
 pub(crate) fn multiply_and_grade_project<L, R, O>(lhs: L, rhs: R) -> O
 where
     L: Multivector,
@@ -493,4 +470,56 @@ pub(crate) fn grade_project_and_sum_terms<M: Multivector>(
         }
     }
     ret
+}
+
+macro_rules! impl_approx_eq {
+    ($type:ty) => {
+        impl ApproxEq for $type {
+            fn approx_eq(&self, other: &Self, prec: Precision) -> bool {
+                self.has_same_terms_as(*other)
+                    && std::iter::zip(self.terms(), other.terms())
+                        .all(|(a, b)| prec.eq(a.coef, b.coef))
+            }
+        }
+        impl ApproxEqZero for $type {
+            fn approx_eq_zero(&self, prec: Precision) -> bool {
+                self.terms().iter().all(|term| prec.eq_zero(term.coef))
+            }
+        }
+    };
+}
+
+impl_approx_eq!(Blade1);
+impl_approx_eq!(Blade2);
+impl_approx_eq!(Blade3);
+impl_approx_eq!(Pseudoscalar);
+impl_approx_eq!(Rotor);
+impl_approx_eq!(Flector);
+impl_approx_eq!(Rotoflector);
+
+macro_rules! impl_approx_hash_terms {
+    ($type:ty) => {
+        impl ApproxHash for $type {
+            fn approx_hash<H: ApproxHasher>(&self, state: &mut H) {
+                for term in self.terms() {
+                    term.coef.approx_hash(state)
+                }
+            }
+        }
+    };
+}
+
+impl_approx_hash_terms!(Blade1);
+impl_approx_hash_terms!(Blade2);
+impl_approx_hash_terms!(Blade3);
+impl_approx_hash_terms!(Pseudoscalar);
+impl_approx_hash_terms!(Rotor);
+impl_approx_hash_terms!(Flector);
+impl ApproxHash for Rotoflector {
+    fn approx_hash<H: ApproxHasher>(&self, state: &mut H) {
+        std::mem::discriminant(self).hash(state);
+        for term in self.terms() {
+            term.coef.approx_hash(state)
+        }
+    }
 }

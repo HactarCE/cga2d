@@ -1,3 +1,5 @@
+use approx_collections::Precision;
+
 use super::{Axes, Multivector, Scalar, Term, Wedge};
 
 /// ∞, also called n ͚, representing the point at infinity.
@@ -15,6 +17,47 @@ pub const NO: Blade1 = Blade1 {
     x: 0.0,
     y: 0.0,
 };
+
+macro_rules! impl_multivector {
+    ($type:ty {
+        dual: $dual:ty,
+        len: $len:expr,
+        terms: [$(($axes:path, $field:ident)),* $(,)?] $(,)?
+    }) => {
+        impl Multivector for $type {
+            type Terms = [Term; $len];
+
+            type Dual = $dual;
+
+            fn zero() -> Self {
+                Self::default()
+            }
+
+            fn has_same_terms_as(self, _other: Self) -> bool {
+                true
+            }
+
+            fn terms(self) -> [Term; $len] {
+                [$(Term::new($axes, self.$field)),*]
+            }
+
+            fn get(&self, axes: Axes) -> Option<&Scalar> {
+                match axes {
+                    $($axes => Some(&self.$field),)*
+                    _ => None,
+                }
+            }
+
+            fn get_mut(&mut self, axes: Axes) -> Option<&mut Scalar> {
+                match axes {
+                    $($axes => Some(&mut self.$field),)*
+                    _ => None,
+                }
+            }
+        }
+    };
+}
+
 /// Multivector of a compile-time-known grade.
 pub trait Blade: Multivector {
     /// Number of basis vectors comprising each term of the blade.
@@ -30,16 +73,11 @@ pub trait Blade: Multivector {
 
     /// Returns whether the blade is "flat" (whether one of its simple component
     /// blades is ∞).
-    ///
-    /// `epsilon` is a small value used for comparison.
-    fn is_flat(self, epsilon: Scalar) -> bool
+    fn is_flat(self, prec: Precision) -> bool
     where
         Self: Wedge<Blade1>,
     {
-        self.wedge(NI)
-            .terms()
-            .into_iter()
-            .all(|t| t.coef.abs() <= epsilon)
+        self.wedge(NI).terms().into_iter().all(|t| prec.eq_zero(t))
     }
 }
 
@@ -89,48 +127,11 @@ pub struct Blade1 {
     pub x: Scalar,
     pub y: Scalar,
 }
-impl Multivector for Blade1 {
-    type Terms = [Term; 4];
-
-    type Dual = Blade3;
-
-    fn zero() -> Self {
-        Self::default()
-    }
-
-    fn has_same_terms_as(self, _other: Self) -> bool {
-        true
-    }
-
-    fn terms(self) -> [Term; 4] {
-        [
-            Term::new(Axes::M, self.m),
-            Term::new(Axes::P, self.p),
-            Term::new(Axes::X, self.x),
-            Term::new(Axes::Y, self.y),
-        ]
-    }
-
-    fn get(&self, axes: Axes) -> Option<&Scalar> {
-        match axes {
-            Axes::M => Some(&self.m),
-            Axes::P => Some(&self.p),
-            Axes::X => Some(&self.x),
-            Axes::Y => Some(&self.y),
-            _ => None,
-        }
-    }
-
-    fn get_mut(&mut self, axes: Axes) -> Option<&mut Scalar> {
-        match axes {
-            Axes::M => Some(&mut self.m),
-            Axes::P => Some(&mut self.p),
-            Axes::X => Some(&mut self.x),
-            Axes::Y => Some(&mut self.y),
-            _ => None,
-        }
-    }
-}
+impl_multivector!(Blade1 {
+    dual: Blade3,
+    len: 4,
+    terms: [(Axes::M, m), (Axes::P, p), (Axes::X, x), (Axes::Y, y)],
+});
 impl Blade for Blade1 {
     const GRADE: u8 = 1;
 }
@@ -174,54 +175,18 @@ pub struct Blade2 {
     pub py: Scalar,
     pub xy: Scalar,
 }
-impl Multivector for Blade2 {
-    type Terms = [Term; 6];
-
-    type Dual = Blade2;
-
-    fn zero() -> Self {
-        Self::default()
-    }
-
-    fn has_same_terms_as(self, _other: Self) -> bool {
-        true
-    }
-
-    fn terms(self) -> [Term; 6] {
-        [
-            Term::new(Axes::MP, self.mp),
-            Term::new(Axes::MX, self.mx),
-            Term::new(Axes::PX, self.px),
-            Term::new(Axes::MY, self.my),
-            Term::new(Axes::PY, self.py),
-            Term::new(Axes::XY, self.xy),
-        ]
-    }
-
-    fn get(&self, axes: Axes) -> Option<&Scalar> {
-        match axes {
-            Axes::MP => Some(&self.mp),
-            Axes::MX => Some(&self.mx),
-            Axes::PX => Some(&self.px),
-            Axes::MY => Some(&self.my),
-            Axes::PY => Some(&self.py),
-            Axes::XY => Some(&self.xy),
-            _ => None,
-        }
-    }
-
-    fn get_mut(&mut self, axes: Axes) -> Option<&mut Scalar> {
-        match axes {
-            Axes::MP => Some(&mut self.mp),
-            Axes::MX => Some(&mut self.mx),
-            Axes::PX => Some(&mut self.px),
-            Axes::MY => Some(&mut self.my),
-            Axes::PY => Some(&mut self.py),
-            Axes::XY => Some(&mut self.xy),
-            _ => None,
-        }
-    }
-}
+impl_multivector!(Blade2 {
+    dual: Blade2,
+    len: 6,
+    terms: [
+        (Axes::MP, mp),
+        (Axes::MX, mx),
+        (Axes::PX, px),
+        (Axes::MY, my),
+        (Axes::PY, py),
+        (Axes::XY, xy),
+    ],
+});
 impl Blade for Blade2 {
     const GRADE: u8 = 2;
 }
@@ -262,58 +227,24 @@ pub struct Blade3 {
     pub mxy: Scalar,
     pub pxy: Scalar,
 }
-impl Multivector for Blade3 {
-    type Terms = [Term; 4];
-
-    type Dual = Blade1;
-
-    fn zero() -> Self {
-        Self::default()
-    }
-
-    fn has_same_terms_as(self, _other: Self) -> bool {
-        true
-    }
-
-    fn terms(self) -> [Term; 4] {
-        [
-            Term::new(Axes::MPX, self.mpx),
-            Term::new(Axes::MPY, self.mpy),
-            Term::new(Axes::MXY, self.mxy),
-            Term::new(Axes::PXY, self.pxy),
-        ]
-    }
-
-    fn get(&self, axes: Axes) -> Option<&Scalar> {
-        match axes {
-            Axes::MPX => Some(&self.mpx),
-            Axes::MPY => Some(&self.mpy),
-            Axes::MXY => Some(&self.mxy),
-            Axes::PXY => Some(&self.pxy),
-            _ => None,
-        }
-    }
-
-    fn get_mut(&mut self, axes: Axes) -> Option<&mut Scalar> {
-        match axes {
-            Axes::MPX => Some(&mut self.mpx),
-            Axes::MPY => Some(&mut self.mpy),
-            Axes::MXY => Some(&mut self.mxy),
-            Axes::PXY => Some(&mut self.pxy),
-            _ => None,
-        }
-    }
-}
+impl_multivector!(Blade3 {
+    dual: Blade1,
+    len: 4,
+    terms: [
+        (Axes::MPX, mpx),
+        (Axes::MPY, mpy),
+        (Axes::MXY, mxy),
+        (Axes::PXY, pxy),
+    ],
+});
 impl Blade for Blade3 {
     const GRADE: u8 = 3;
 }
 impl Blade3 {
     /// Returns the line or circle in Euclidean space.
-    ///
-    /// `epsilon` is a small value used for comparison.
-    pub fn unpack(self, epsilon: Scalar) -> LineOrCircle {
+    pub fn unpack(self, prec: Precision) -> LineOrCircle {
         let dual = self.dual();
-        if approx::abs_diff_eq!(dual.m, dual.p, epsilon = epsilon) {
+        if prec.eq(dual.m, dual.p) {
             LineOrCircle::Line {
                 a: dual.x,
                 b: dual.y,
@@ -369,37 +300,11 @@ pub enum LineOrCircle {
 pub struct Pseudoscalar {
     pub mpxy: Scalar,
 }
-impl Multivector for Pseudoscalar {
-    type Terms = [Term; 1];
-
-    type Dual = Scalar;
-
-    fn zero() -> Self {
-        Self::default()
-    }
-
-    fn has_same_terms_as(self, _other: Self) -> bool {
-        true
-    }
-
-    fn terms(self) -> Self::Terms {
-        [Term::new(Axes::MPXY, self.mpxy)]
-    }
-
-    fn get(&self, axes: Axes) -> Option<&Scalar> {
-        match axes {
-            Axes::MPXY => Some(&self.mpxy),
-            _ => None,
-        }
-    }
-
-    fn get_mut(&mut self, axes: Axes) -> Option<&mut Scalar> {
-        match axes {
-            Axes::MPXY => Some(&mut self.mpxy),
-            _ => None,
-        }
-    }
-}
+impl_multivector!(Pseudoscalar {
+    dual: Scalar,
+    len: 1,
+    terms: [(Axes::MPXY, mpxy)],
+});
 impl Blade for Pseudoscalar {
     const GRADE: u8 = 4;
 }

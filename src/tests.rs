@@ -1,12 +1,14 @@
 use std::fmt;
 
+use approx_collections::{ApproxEq, Precision};
+
 use super::*;
 
-const EPS: Scalar = 0.0001;
+const APPROX: Precision = Precision::DEFAULT;
 
 #[track_caller]
-fn assert_approx_eq<T: fmt::Debug + approx::AbsDiffEq<Epsilon = Scalar>>(a: T, b: T) {
-    approx::assert_abs_diff_eq!(a, b, epsilon = EPS);
+fn assert_approx_eq<T: fmt::Debug + ApproxEq + Copy>(a: T, b: T) {
+    assert!(APPROX.eq(a, b), "expected {a:?} == {b:?}");
 }
 
 #[track_caller]
@@ -17,10 +19,9 @@ fn assert_eq_up_to_scale<M: Multivector>(a: M, b: M) {
         .max_by(|t1, t2| f64::total_cmp(&t1.coef.abs(), &t2.coef.abs()))
         .unwrap()
         .axes;
-    approx::assert_abs_diff_eq!(
+    assert_approx_eq(
         a / *a.get(max_axes).unwrap_or(&0.0),
         b / *b.get(max_axes).unwrap_or(&0.0),
-        epsilon = EPS,
     );
 }
 
@@ -31,7 +32,7 @@ fn test_point() {
     for &s in SCALARS {
         for (x, y) in [(0.0, 0.0), (3.0, -4.0)] {
             let p = s * point(x, y);
-            assert!(!p.is_flat(EPS));
+            assert!(!p.is_flat(APPROX));
 
             let (x_out, y_out) = p.unpack_point();
             assert_approx_eq(x, x_out);
@@ -39,7 +40,7 @@ fn test_point() {
         }
     }
 
-    assert!(NI.is_flat(EPS));
+    assert!(NI.is_flat(APPROX));
 }
 
 #[test]
@@ -54,7 +55,7 @@ fn test_point_pair() {
         ] {
             let pp = s * p1 ^ p2;
 
-            assert_eq!(pp.is_flat(EPS), p1 == NI || p2 == NI);
+            assert_eq!(pp.is_flat(APPROX), p1 == NI || p2 == NI);
 
             let [mut p1_out, mut p2_out] = pp.unpack_point_pair().unwrap();
             if s < 0.0 {
@@ -71,9 +72,9 @@ fn test_unpack_circle() {
     for &s in SCALARS {
         for ((cx, cy), r) in [((3.0, -4.0), 7.0), ((-1.0, 6.0), 0.0), ((3.0, -4.0), -9.0)] {
             let circ = s * circle(point(cx, cy), r);
-            assert!(!circ.is_flat(EPS));
+            assert!(!circ.is_flat(APPROX));
 
-            match circ.unpack(EPS) {
+            match circ.unpack(APPROX) {
                 LineOrCircle::Line { .. } => panic!("expected circle"),
                 LineOrCircle::Circle {
                     cx: cx_out,
@@ -99,7 +100,7 @@ fn test_unpack_line() {
             (0.0, 1.0, 0.0),
         ] {
             let l = s * line(a, b, c);
-            assert!(l.is_flat(EPS));
+            assert!(l.is_flat(APPROX));
 
             if a != 0.0 {
                 assert_approx_eq((point(c / a, 0.0) ^ l).dual(), 0.0);
@@ -108,7 +109,7 @@ fn test_unpack_line() {
                 assert_approx_eq((point(0.0, c / b) ^ l).dual(), 0.0);
             }
 
-            match l.unpack(EPS) {
+            match l.unpack(APPROX) {
                 LineOrCircle::Line {
                     a: a_out,
                     b: b_out,
@@ -147,7 +148,7 @@ fn test_point_reflection() {
         assert_approx_eq(x2, -6.0);
         assert_approx_eq(y2, 7.0);
 
-        match central_inversion.sandwich(circ).unpack(EPS) {
+        match central_inversion.sandwich(circ).unpack(APPROX) {
             LineOrCircle::Line { .. } => {
                 panic!("expected circle")
             }

@@ -10,8 +10,7 @@
 //! let p2 = cga2d::point(-3.0, 5.0);
 //! let line = p1 ^ p2 ^ NI;
 //!
-//! let epsilon = 0.0001; // comparison threshold
-//! assert!(line.is_flat(epsilon));
+//! assert!(line.is_flat(Precision::DEFAULT));
 //!
 //! assert_eq!(!(line ^ cga2d::point(-1.0, 4.0)), 0.0);
 //!
@@ -116,8 +115,7 @@
 //!
 //! let central_inversion = Rotor::from(NI ^ NO);
 //! let inverted_circle = central_inversion.sandwich(circle);
-//! let epsilon = 0.0001; // comparison threshold
-//! assert_eq!(inverted_circle.unpack(epsilon), cga2d::LineOrCircle::Circle {
+//! assert_eq!(inverted_circle.unpack(Precision::DEFAULT), cga2d::LineOrCircle::Circle {
 //!     cx: -3.0,
 //!     cy: -4.0,
 //!     r: 7.0
@@ -202,16 +200,22 @@ mod ops;
 mod rotoflector;
 mod term;
 
+pub use approx_collections::traits::*;
+pub use approx_collections::Precision;
+
 /// Traits and basic types (blades, NI, NO, rotor/flector/rotoflector).
 pub mod prelude {
-    pub use crate::traits::*;
+    pub use approx_collections::Precision;
 
     pub use crate::blade::{Blade1, Blade2, Blade3, Pseudoscalar, NI, NO};
     pub use crate::rotoflector::{Flector, Rotoflector, Rotor};
+    pub use crate::traits::*;
 }
 
 /// Traits.
 pub mod traits {
+    pub use approx_collections::traits::*;
+
     pub use crate::blade::Blade;
     pub use crate::multivector::Multivector;
     pub use crate::ops::Wedge;

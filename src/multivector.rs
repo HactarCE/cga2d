@@ -3,6 +3,8 @@ use std::{
     ops::{Add, Div, Mul, Sub},
 };
 
+use approx_collections::traits::*;
+
 use crate::ops::grade_project_and_sum_terms;
 
 use super::{Axes, Scalar, Term};
@@ -16,7 +18,9 @@ pub trait Multivector:
     + Sub<Output = Self>
     + Mul<Scalar, Output = Self>
     + Div<Scalar, Output = Self>
-    + approx::AbsDiffEq<Epsilon = Scalar>
+    + ApproxEq
+    + ApproxEqZero
+    + ApproxHash
 {
     /// Array type `[Term; N]` of terms in the blade.
     type Terms: Copy + AsRef<[Term]> + IntoIterator<Item = Term>;

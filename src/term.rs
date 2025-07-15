@@ -1,5 +1,8 @@
 use std::fmt;
+use std::hash::Hash;
 use std::ops::{Mul, Neg, Not};
+
+use approx_collections::{ApproxEq, ApproxEqZero, ApproxHash, ApproxHasher, Precision};
 
 use super::{Axes, Scalar};
 
@@ -53,15 +56,22 @@ impl Not for Term {
     }
 }
 
-impl approx::AbsDiffEq for Term {
-    type Epsilon = Scalar;
-
-    fn default_epsilon() -> Self::Epsilon {
-        Scalar::default_epsilon()
+impl ApproxEq for Term {
+    fn approx_eq(&self, other: &Self, prec: Precision) -> bool {
+        self.axes == other.axes && self.coef.approx_eq(&other.coef, prec)
     }
+}
 
-    fn abs_diff_eq(&self, other: &Self, epsilon: Self::Epsilon) -> bool {
-        self.axes == other.axes && approx::AbsDiffEq::abs_diff_eq(&self.coef, &other.coef, epsilon)
+impl ApproxEqZero for Term {
+    fn approx_eq_zero(&self, prec: Precision) -> bool {
+        self.coef.approx_eq_zero(prec)
+    }
+}
+
+impl ApproxHash for Term {
+    fn approx_hash<H: ApproxHasher>(&self, state: &mut H) {
+        self.axes.hash(state);
+        self.coef.approx_hash(state);
     }
 }
 
