@@ -10,15 +10,15 @@
 //! let p2 = cga2d::point(-3.0, 5.0);
 //! let line = p1 ^ p2 ^ NI;
 //!
-//! assert!(line.is_flat(Precision::DEFAULT));
+//! assert!(line.is_flat());
 //!
 //! assert_eq!(!(line ^ cga2d::point(-1.0, 4.0)), 0.0);
 //!
 //! let circ = cga2d::circle(cga2d::point(3.0, 1.5), 3.0);
-//! assert_eq!(circ.sandwich(NI).unpack_point(), (3.0, 1.5));
+//! assert_eq!(circ.sandwich(NI).unpack().finite(), Some([3.0, 1.5]));
 //!
 //! let rot90_ccw: Rotor = cga2d::line(1.0, 1.0, 0.0) * cga2d::line(1.0, 0.0, 0.0);
-//! assert_eq!(rot90_ccw.sandwich(cga2d::point(3.0, 4.0)).unpack_point(), (-4.0, 3.0));
+//! assert_eq!(rot90_ccw.sandwich(cga2d::point(3.0, 4.0)).unpack().finite(), Some([-4.0, 3.0]));
 //! ```
 //!
 //! # Multivector types
@@ -115,7 +115,7 @@
 //!
 //! let central_inversion = Rotor::from(NI ^ NO);
 //! let inverted_circle = central_inversion.sandwich(circle);
-//! assert_eq!(inverted_circle.unpack(Precision::DEFAULT), cga2d::LineOrCircle::Circle {
+//! assert_eq!(inverted_circle.unpack(), cga2d::LineOrCircle::Circle {
 //!     cx: -3.0,
 //!     cy: -4.0,
 //!     r: 7.0

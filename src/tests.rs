@@ -32,15 +32,15 @@ fn test_point() {
     for &s in SCALARS {
         for (x, y) in [(0.0, 0.0), (3.0, -4.0)] {
             let p = s * point(x, y);
-            assert!(!p.is_flat(APPROX));
+            assert!(!p.is_flat());
 
-            let (x_out, y_out) = p.unpack_point();
+            let [x_out, y_out] = p.unpack().finite().unwrap();
             assert_approx_eq(x, x_out);
             assert_approx_eq(y, y_out);
         }
     }
 
-    assert!(NI.is_flat(APPROX));
+    assert!(NI.is_flat());
 }
 
 #[test]
@@ -55,9 +55,9 @@ fn test_point_pair() {
         ] {
             let pp = s * p1 ^ p2;
 
-            assert_eq!(pp.is_flat(APPROX), p1 == NI || p2 == NI);
+            assert_eq!(pp.is_flat(), p1 == NI || p2 == NI);
 
-            let [mut p1_out, mut p2_out] = pp.unpack_point_pair().unwrap();
+            let [mut p1_out, mut p2_out] = pp.unpack().real().unwrap();
             if s < 0.0 {
                 std::mem::swap(&mut p1_out, &mut p2_out);
             }
@@ -72,9 +72,9 @@ fn test_unpack_circle() {
     for &s in SCALARS {
         for ((cx, cy), r) in [((3.0, -4.0), 7.0), ((-1.0, 6.0), 0.0), ((3.0, -4.0), -9.0)] {
             let circ = s * circle(point(cx, cy), r);
-            assert!(!circ.is_flat(APPROX));
+            assert!(!circ.is_flat());
 
-            match circ.unpack(APPROX) {
+            match circ.unpack_with_prec(APPROX) {
                 LineOrCircle::Line { .. } => panic!("expected circle"),
                 LineOrCircle::Circle {
                     cx: cx_out,
@@ -100,7 +100,7 @@ fn test_unpack_line() {
             (0.0, 1.0, 0.0),
         ] {
             let l = s * line(a, b, c);
-            assert!(l.is_flat(APPROX));
+            assert!(l.is_flat());
 
             if a != 0.0 {
                 assert_approx_eq((point(c / a, 0.0) ^ l).dual(), 0.0);
@@ -109,7 +109,7 @@ fn test_unpack_line() {
                 assert_approx_eq((point(0.0, c / b) ^ l).dual(), 0.0);
             }
 
-            match l.unpack(APPROX) {
+            match l.unpack_with_prec(APPROX) {
                 LineOrCircle::Line {
                     a: a_out,
                     b: b_out,
@@ -135,20 +135,21 @@ fn test_point_reflection() {
     for &s in SCALARS {
         let central_inversion = s * Rotor::from(NI ^ NO);
 
-        let (x, y) = central_inversion.sandwich(p).unpack_point();
+        let [x, y] = central_inversion.sandwich(p).unpack().finite().unwrap();
         assert_approx_eq(x, -1.0);
         assert_approx_eq(y, -4.0);
 
-        let [(x1, y1), (x2, y2)] = (-central_inversion.sandwich(pp))
-            .unpack_point_pair()
+        let [[x1, y1], [x2, y2]] = (-central_inversion.sandwich(pp))
+            .unpack()
+            .real()
             .unwrap()
-            .map(|p| p.unpack_point());
+            .map(|p| p.unpack().finite().unwrap());
         assert_approx_eq(x1, -1.0);
         assert_approx_eq(y1, -4.0);
         assert_approx_eq(x2, -6.0);
         assert_approx_eq(y2, 7.0);
 
-        match central_inversion.sandwich(circ).unpack(APPROX) {
+        match central_inversion.sandwich(circ).unpack_with_prec(APPROX) {
             LineOrCircle::Line { .. } => {
                 panic!("expected circle")
             }

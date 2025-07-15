@@ -536,7 +536,7 @@ impl ApproxHash for Rotoflector {
     fn approx_hash<H: ApproxHasher>(&self, state: &mut H) {
         std::mem::discriminant(self).hash(state);
         for term in self.terms() {
-            term.coef.approx_hash(state)
+            term.coef.approx_hash(state);
         }
     }
 }

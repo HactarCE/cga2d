@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- `Blade::is_flat_with_prec()`
+- `impl approx_collections::ApproxSign for Pseudoscalar`
+
+### Changed
+
+- Switched from `approx` to `approx_collections`
+- Overhauled blade unpacking
+  - There are now two methods on `Blade1`, `Blade2`, and `Blade3`: `unpack()` and `unpack_with_prec(prec: Precision)`
+  - Unpacking a `Blade1` now returns a `Point` enum instead of `(Scalar, Scalar)`
+  - Unpacking a `Blade2` now returns a `PointPair` enum instead of `Option<Blade1>`
+- Removed `epsilon` parameter from `Blade::is_flat()`
+- Added `Blade::is_flat_with_prec(prec: Precision)`
+
 ## 0.4.0 - 2024-09-25
 
 ### Added

@@ -1,4 +1,4 @@
-use approx_collections::Precision;
+use approx_collections::{ApproxSign, Precision};
 
 use super::{Axes, Multivector, Scalar, Term, Wedge};
 
@@ -73,7 +73,18 @@ pub trait Blade: Multivector {
 
     /// Returns whether the blade is "flat" (whether one of its simple component
     /// blades is ∞).
-    fn is_flat(self, prec: Precision) -> bool
+    ///
+    /// Uses [`Precision::DEFAULT`].
+    fn is_flat(self) -> bool
+    where
+        Self: Wedge<Blade1>,
+    {
+        self.is_flat_with_prec(Precision::DEFAULT)
+    }
+
+    /// Returns whether the blade is "flat" (whether one of its simple component
+    /// blades is ∞).
+    fn is_flat_with_prec(self, prec: Precision) -> bool
     where
         Self: Wedge<Blade1>,
     {
@@ -147,17 +158,49 @@ impl Blade1 {
 
     /// Returns the coordinates of a point in 2D Euclidean space.
     ///
-    /// If the blade does not represent a conformal point, then the output may
-    /// be meaningless.
-    pub fn unpack_point(self) -> (Scalar, Scalar) {
-        let no = self.no();
-        (self.x / no, self.y / no)
+    /// Uses [`Precision::DEFAULT`].
+    pub fn unpack(self) -> Point {
+        self.unpack_with_prec(Precision::DEFAULT)
+    }
+    /// Returns the coordinates of a point in 2D Euclidean space.
+    pub fn unpack_with_prec(self, prec: Precision) -> Point {
+        // TODO: handle other cases
+        if prec.eq(self.m, self.p) && prec.eq_zero([self.x, self.y]) {
+            Point::Infinity
+        } else {
+            let no = self.no();
+            Point::Finite([self.x / no, self.y / no])
+        }
     }
 
     /// Normalizes a point with respect to nₒ.
     #[must_use]
     pub fn normalize_point(self) -> Self {
         self / self.no()
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum Point {
+    Finite([Scalar; 2]),
+    Infinity,
+    RoundPointDual(LineOrCircle),
+    CircleDual(LineOrCircle),
+}
+// TODO: `impl ApproxEq, ApproxHash for Point`
+impl Default for Point {
+    fn default() -> Self {
+        Point::Finite([0.0; 2])
+    }
+}
+impl Point {
+    /// Returns the finite coordinates of the point, or `None` if it is not a
+    /// real finite point.
+    pub fn finite(self) -> Option<[Scalar; 2]> {
+        match self {
+            Point::Finite(xy) => Some(xy),
+            _ => None,
+        }
     }
 }
 
@@ -191,28 +234,68 @@ impl Blade for Blade2 {
     const GRADE: u8 = 2;
 }
 impl Blade2 {
-    /// Returns the pair of points in a point pair, or `None` the point pair is
-    /// imaginary.
-    pub fn unpack_point_pair(self) -> Option<[Blade1; 2]> {
-        let mag = self.mag2().sqrt();
+    /// Returns the real, imaginary, or tangent pair of points in a point pair.
+    ///
+    /// Uses [`Precision::DEFAULT`].
+    pub fn unpack(self) -> PointPair {
+        self.unpack_with_prec(Precision::DEFAULT)
+    }
 
-        // We need to use an arbitrary point that is not in the point pair. Of
-        // these three points, there is guaranteed to be one with a nonzero
-        // result.
+    /// Returns the real, imaginary, or tangent pair of points in a point pair.
+    pub fn unpack_with_prec(self, prec: Precision) -> PointPair {
+        let mag2 = self.mag2();
+
+        match mag2.approx_sign(prec) {
+            approx_collections::Sign::Negative => PointPair::Imaginary {},
+            approx_collections::Sign::Zero => PointPair::Tangent {
+                point: self.unpack_raw(0.0)[0],
+            },
+            approx_collections::Sign::Positive => PointPair::Real(self.unpack_raw(mag2.sqrt())),
+        }
+    }
+
+    fn unpack_raw(self, mag: f64) -> [Blade1; 2] {
+        // We need to use an arbitrary point that is not in the point
+        // pair. Of these three points, there is guaranteed to be one
+        // with a nonzero result.
         let candidates = [NI, NO, crate::point(1.0, 0.0)];
         let multiplier = candidates
             .iter()
             .map(|&arbitrary| arbitrary << self)
-            .max_by(|a, b| f64::total_cmp(&a.mag2(), &b.mag2()))?
+            .max_by(|a, b| f64::total_cmp(&a.mag2(), &b.mag2()))
+            .expect("empty candidates list")
             .inv();
 
-        mag.is_finite()
-            .then(|| [1.0, -1.0].map(|sign| (multiplier << self) + (sign * mag * multiplier)))
+        [1.0, -1.0].map(|sign| (multiplier << self) + (sign * mag * multiplier))
     }
 
     /// Rotates a tangent vector counterclockwise by `angle` (in radians).
     pub fn rotate(self, angle: Scalar) -> Self {
         self * angle.cos() + self.dual() * angle.sin()
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum PointPair {
+    Real([Blade1; 2]),
+    #[non_exhaustive]
+    Tangent {
+        point: Blade1,
+        // TODO: vector
+    },
+    #[non_exhaustive]
+    Imaginary {
+        // TODO: imaginary points
+    },
+}
+// TODO: `impl ApproxEq, ApproxHash for PointPair`
+impl PointPair {
+    /// Returns the real point pair, or `None` if it is not real.
+    pub fn real(self) -> Option<[Blade1; 2]> {
+        match self {
+            PointPair::Real(pair) => Some(pair),
+            _ => None,
+        }
     }
 }
 
@@ -242,7 +325,14 @@ impl Blade for Blade3 {
 }
 impl Blade3 {
     /// Returns the line or circle in Euclidean space.
-    pub fn unpack(self, prec: Precision) -> LineOrCircle {
+    ///
+    /// Uses [`Precision::DEFAULT`].
+    pub fn unpack(self) -> LineOrCircle {
+        self.unpack_with_prec(Precision::DEFAULT)
+    }
+
+    /// Returns the line or circle in Euclidean space.
+    pub fn unpack_with_prec(self, prec: Precision) -> LineOrCircle {
         let dual = self.dual();
         if prec.eq(dual.m, dual.p) {
             LineOrCircle::Line {
@@ -307,4 +397,9 @@ impl_multivector!(Pseudoscalar {
 });
 impl Blade for Pseudoscalar {
     const GRADE: u8 = 4;
+}
+impl ApproxSign for Pseudoscalar {
+    fn approx_sign(&self, prec: Precision) -> approx_collections::Sign {
+        self.mpxy.approx_sign(prec)
+    }
 }

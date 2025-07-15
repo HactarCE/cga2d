@@ -4,9 +4,9 @@ version = 4
 
 [[package]]
 name = "approx_collections"
-version = "1.0.0"
+version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cedde28b32d12cb82092ea0ece876dde03cca1b05a66c48aa8fd8968a4bba421"
+checksum = "db1986a40a5d0d168f1aed983dfa9a1f6f5088713d83a893ec8fa265ce1bbf37"
 dependencies = [
  "rustc-hash",
  "smallvec",
@@ -43,7 +43,7 @@ dependencies = [
 
 [[package]]
 name = "cga2d"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "approx_collections",
  "bitflags",
