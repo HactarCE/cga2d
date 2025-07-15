@@ -1,6 +1,5 @@
-use crate::Pseudoscalar;
-
 use super::{Axes, Blade1, Blade2, Blade3, Multivector, Scalar, Term};
+use crate::Pseudoscalar;
 
 macro_rules! impl_from_terms {
     (($from:ty) -> $to:ty) => {

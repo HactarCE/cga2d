@@ -1,13 +1,10 @@
-use std::{
-    fmt,
-    ops::{Add, Div, Mul, Sub},
-};
+use std::fmt;
+use std::ops::{Add, Div, Mul, Sub};
 
 use approx_collections::traits::*;
 
-use crate::ops::grade_project_and_sum_terms;
-
 use super::{Axes, Scalar, Term};
+use crate::ops::grade_project_and_sum_terms;
 
 /// Multivector supporting an arbitrary subset of terms.
 pub trait Multivector:
