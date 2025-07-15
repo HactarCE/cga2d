@@ -184,8 +184,8 @@ impl Blade1 {
 pub enum Point {
     Finite([Scalar; 2]),
     Infinity,
-    RoundPointDual(LineOrCircle),
-    CircleDual(LineOrCircle),
+    RoundPointDual(Circle),
+    CircleDual(Circle),
 }
 // TODO: `impl ApproxEq, ApproxHash for Point`
 impl Default for Point {
@@ -200,6 +200,21 @@ impl Point {
         match self {
             Point::Finite(xy) => Some(xy),
             _ => None,
+        }
+    }
+}
+impl From<Blade1> for Point {
+    fn from(value: Blade1) -> Self {
+        value.unpack()
+    }
+}
+impl From<Point> for Blade1 {
+    fn from(value: Point) -> Self {
+        match value {
+            Point::Finite([x, y]) => crate::point(x, y),
+            Point::Infinity => NI,
+            Point::RoundPointDual(circle) => todo!(),
+            Point::CircleDual(circle) => todo!(),
         }
     }
 }
@@ -298,6 +313,20 @@ impl PointPair {
         }
     }
 }
+impl From<Blade2> for PointPair {
+    fn from(value: Blade2) -> Self {
+        value.unpack()
+    }
+}
+impl From<PointPair> for Blade2 {
+    fn from(value: PointPair) -> Self {
+        match value {
+            PointPair::Real([p1, p2]) => p1 ^ p2,
+            PointPair::Tangent { point } => todo!(),
+            PointPair::Imaginary {} => todo!(),
+        }
+    }
+}
 
 /// 3-blade, used to represent circles (real and imaginary).
 #[derive(Debug, Default, Copy, Clone, PartialEq)]
@@ -327,15 +356,15 @@ impl Blade3 {
     /// Returns the line or circle in Euclidean space.
     ///
     /// Uses [`Precision::DEFAULT`].
-    pub fn unpack(self) -> LineOrCircle {
+    pub fn unpack(self) -> Circle {
         self.unpack_with_prec(Precision::DEFAULT)
     }
 
     /// Returns the line or circle in Euclidean space.
-    pub fn unpack_with_prec(self, prec: Precision) -> LineOrCircle {
+    pub fn unpack_with_prec(self, prec: Precision) -> Circle {
         let dual = self.dual();
         if prec.eq(dual.m, dual.p) {
-            LineOrCircle::Line {
+            Circle::Line {
                 a: dual.x,
                 b: dual.y,
                 c: dual.p,
@@ -346,21 +375,7 @@ impl Blade3 {
             let cy = dual.y / no;
             let r2 = dual.mag2() / (no * no);
             let r = r2.abs().sqrt() * r2.signum();
-            LineOrCircle::Circle { cx, cy, r }
-        }
-    }
-}
-impl From<LineOrCircle> for Blade3 {
-    fn from(value: LineOrCircle) -> Self {
-        match value {
-            LineOrCircle::Line { a, b, c } => Blade1 {
-                m: c,
-                p: c,
-                x: a,
-                y: b,
-            }
-            .dual(),
-            LineOrCircle::Circle { cx, cy, r } => crate::circle(crate::point(cx, cy), r),
+            Circle::Circle { cx, cy, r }
         }
     }
 }
@@ -368,7 +383,7 @@ impl From<LineOrCircle> for Blade3 {
 /// Euclidean line or circle.
 #[derive(Debug, Copy, Clone, PartialEq)]
 #[allow(missing_docs)]
-pub enum LineOrCircle {
+pub enum Circle {
     /// Line described by the equation _ax+by=c_.
     Line { a: Scalar, b: Scalar, c: Scalar },
     /// Circle described by the equation _(x-cx)^2+(y-cy)^2=r^2_. If _r_ is
@@ -380,6 +395,19 @@ pub enum LineOrCircle {
     ///
     /// The radius may be zero, such as in the case of the dual of a point.
     Circle { cx: Scalar, cy: Scalar, r: Scalar },
+}
+impl From<Blade3> for Circle {
+    fn from(value: Blade3) -> Self {
+        value.unpack()
+    }
+}
+impl From<Circle> for Blade3 {
+    fn from(value: Circle) -> Self {
+        match value {
+            Circle::Line { a, b, c } => crate::line(a, b, c),
+            Circle::Circle { cx, cy, r } => crate::circle(crate::point(cx, cy), r),
+        }
+    }
 }
 
 /// 4-blade, used to represent pseudoscalar quantities.

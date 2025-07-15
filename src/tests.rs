@@ -75,8 +75,8 @@ fn test_unpack_circle() {
             assert!(!circ.is_flat());
 
             match circ.unpack_with_prec(APPROX) {
-                LineOrCircle::Line { .. } => panic!("expected circle"),
-                LineOrCircle::Circle {
+                Circle::Line { .. } => panic!("expected circle"),
+                Circle::Circle {
                     cx: cx_out,
                     cy: cy_out,
                     r: r_out,
@@ -110,7 +110,7 @@ fn test_unpack_line() {
             }
 
             match l.unpack_with_prec(APPROX) {
-                LineOrCircle::Line {
+                Circle::Line {
                     a: a_out,
                     b: b_out,
                     c: c_out,
@@ -118,7 +118,7 @@ fn test_unpack_line() {
                     assert_approx_eq(a * c_out, a_out * c);
                     assert_approx_eq(b * c_out, b_out * c);
                 }
-                LineOrCircle::Circle { .. } => panic!("expected line"),
+                Circle::Circle { .. } => panic!("expected line"),
             }
         }
     }
@@ -150,10 +150,10 @@ fn test_point_reflection() {
         assert_approx_eq(y2, 7.0);
 
         match central_inversion.sandwich(circ).unpack_with_prec(APPROX) {
-            LineOrCircle::Line { .. } => {
+            Circle::Line { .. } => {
                 panic!("expected circle")
             }
-            LineOrCircle::Circle { cx, cy, r } => {
+            Circle::Circle { cx, cy, r } => {
                 assert_approx_eq(cx, -3.0);
                 assert_approx_eq(cy, -4.0);
                 assert_approx_eq(r, 7.0);

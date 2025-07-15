@@ -115,7 +115,7 @@
 //!
 //! let central_inversion = Rotor::from(NI ^ NO);
 //! let inverted_circle = central_inversion.sandwich(circle);
-//! assert_eq!(inverted_circle.unpack(), cga2d::LineOrCircle::Circle {
+//! assert_eq!(inverted_circle.unpack(), cga2d::Circle::Circle {
 //!     cx: -3.0,
 //!     cy: -4.0,
 //!     r: 7.0
@@ -222,7 +222,7 @@ pub mod traits {
 }
 
 pub use axes::Axes;
-pub use blade::{Blade, Blade1, Blade2, Blade3, LineOrCircle, Pseudoscalar, NI, NO};
+pub use blade::{Blade, Blade1, Blade2, Blade3, Circle, Pseudoscalar, NI, NO};
 pub use multivector::Multivector;
 pub use ops::Wedge;
 pub use rotoflector::{Flector, Rotoflector, Rotor};

@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - There are now two methods on `Blade1`, `Blade2`, and `Blade3`: `unpack()` and `unpack_with_prec(prec: Precision)`
   - Unpacking a `Blade1` now returns a `Point` enum instead of `(Scalar, Scalar)`
   - Unpacking a `Blade2` now returns a `PointPair` enum instead of `Option<Blade1>`
+  - Unpacking a `Blade3` now returns a `Circle` (renamed from `LineOrCircle`)
+  - Added conversions between `Blade1`/`Blade2`/`Blade3` and `Point`/`PointPair`/`Circle` respectively
 - Removed `epsilon` parameter from `Blade::is_flat()`
 - Added `Blade::is_flat_with_prec(prec: Precision)`
 
