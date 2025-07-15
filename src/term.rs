@@ -2,7 +2,9 @@ use std::fmt;
 use std::hash::Hash;
 use std::ops::{Mul, Neg, Not};
 
-use approx_collections::{ApproxEq, ApproxEqZero, ApproxHash, ApproxHasher, Precision};
+use approx_collections::{
+    ApproxEq, ApproxEqZero, ApproxHash, ApproxHasher, Precision, VisitFloats,
+};
 
 use super::{Axes, Scalar};
 
@@ -72,6 +74,16 @@ impl ApproxHash for Term {
     fn approx_hash<H: ApproxHasher>(&self, state: &mut H) {
         self.axes.hash(state);
         self.coef.approx_hash(state);
+    }
+}
+
+impl VisitFloats for Term {
+    fn visit_floats(&self, mut f: impl FnMut(&f64)) {
+        f(&self.coef);
+    }
+
+    fn visit_floats_mut(&mut self, mut f: impl FnMut(&mut f64)) {
+        f(&mut self.coef);
     }
 }
 

@@ -8,7 +8,9 @@ use std::ops::{
     Sub, SubAssign,
 };
 
-use approx_collections::{ApproxEq, ApproxEqZero, ApproxHash, ApproxHasher, Precision};
+use approx_collections::{
+    ApproxEq, ApproxEqZero, ApproxHash, ApproxHasher, Precision, VisitFloats,
+};
 
 use super::{
     Axes, Blade, Blade1, Blade2, Blade3, Flector, Multivector, Pseudoscalar, Rotoflector, Rotor,
@@ -481,9 +483,24 @@ macro_rules! impl_approx_eq {
                         .all(|(a, b)| prec.eq(a.coef, b.coef))
             }
         }
+
         impl ApproxEqZero for $type {
             fn approx_eq_zero(&self, prec: Precision) -> bool {
                 self.terms().iter().all(|term| prec.eq_zero(term.coef))
+            }
+        }
+
+        impl VisitFloats for $type {
+            fn visit_floats(&self, mut f: impl FnMut(&f64)) {
+                self.terms().iter().for_each(|t| f(&t.coef));
+            }
+
+            fn visit_floats_mut(&mut self, mut f: impl FnMut(&mut f64)) {
+                let new_terms = self.terms().map(|mut t| {
+                    f(&mut t.coef);
+                    t
+                });
+                *self = new_terms.into_iter().sum();
             }
         }
     };
