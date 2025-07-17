@@ -379,23 +379,41 @@ impl_multivector_binary_ops!(
 
     (Rotoflector) * (Rotoflector) -> Rotoflector;
 
-    (Blade1) ^ (Blade1) -> Blade2;
+    (Scalar) ^ (Blade1) -> Blade1;
+    (Blade1) ^ (Scalar) -> Blade1;
 
+    (Scalar) ^ (Blade2) -> Blade2;
+    (Blade1) ^ (Blade1) -> Blade2;
+    (Blade2) ^ (Scalar) -> Blade2;
+
+    (Scalar) ^ (Blade3) -> Blade3;
     (Blade1) ^ (Blade2) -> Blade3;
     (Blade2) ^ (Blade1) -> Blade3;
+    (Blade3) ^ (Scalar) -> Blade3;
 
+    (Scalar) ^ (Pseudoscalar) -> Pseudoscalar;
     (Blade1) ^ (Blade3) -> Pseudoscalar;
     (Blade2) ^ (Blade2) -> Pseudoscalar;
     (Blade3) ^ (Blade1) -> Pseudoscalar;
+    (Pseudoscalar) ^ (Scalar) -> Pseudoscalar;
 
+    (Pseudoscalar) & (Blade3) -> Blade3;
+    (Blade3) & (Pseudoscalar) -> Blade3;
+
+    (Pseudoscalar) & (Blade2) -> Blade2;
     (Blade3) & (Blade3) -> Blade2;
+    (Blade2) & (Pseudoscalar) -> Blade2;
 
+    (Pseudoscalar) & (Blade1) -> Blade1;
     (Blade3) & (Blade2) -> Blade1;
     (Blade2) & (Blade3) -> Blade1;
+    (Blade1) & (Pseudoscalar) -> Blade1;
 
+    (Pseudoscalar) & (Scalar) -> Scalar;
     (Blade3) & (Blade1) -> Scalar;
     (Blade2) & (Blade2) -> Scalar;
     (Blade1) & (Blade3) -> Scalar;
+    (Scalar) & (Pseudoscalar) -> Scalar;
 
     (Blade1) << (Blade1) -> Scalar;
     (Blade1) << (Blade2) -> Blade1;

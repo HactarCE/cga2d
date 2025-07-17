@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Wedge products with `Scalar`
+- Antiwedge products with `Pseudoscalar`
 - `Blade::is_flat_with_prec()`
 - `impl approx_collections::ApproxSign for Pseudoscalar`
 
