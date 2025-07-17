@@ -3,7 +3,7 @@ use std::hash::Hash;
 use std::ops::{Mul, Neg, Not};
 
 use approx_collections::{
-    ApproxEq, ApproxEqZero, ApproxHash, ApproxHasher, Precision, VisitFloats,
+    ApproxEq, ApproxEqZero, ApproxHash, ApproxHasher, ForEachFloat, Precision,
 };
 
 use super::{Axes, Scalar};
@@ -50,6 +50,17 @@ impl Mul for Term {
     }
 }
 
+impl Mul<Scalar> for Term {
+    type Output = Term;
+
+    fn mul(self, rhs: Scalar) -> Self::Output {
+        Term {
+            axes: self.axes,
+            coef: self.coef * rhs,
+        }
+    }
+}
+
 impl Not for Term {
     type Output = Term;
 
@@ -77,13 +88,9 @@ impl ApproxHash for Term {
     }
 }
 
-impl VisitFloats for Term {
-    fn visit_floats(&self, mut f: impl FnMut(&f64)) {
-        f(&self.coef);
-    }
-
-    fn visit_floats_mut(&mut self, mut f: impl FnMut(&mut f64)) {
-        f(&mut self.coef);
+impl ForEachFloat for Term {
+    fn for_each_float(&mut self, f: &mut impl FnMut(&mut f64)) {
+        f(&mut self.coef)
     }
 }
 
@@ -113,7 +120,7 @@ impl Term {
     /// Returns the antidual of the term.
     #[must_use]
     pub fn antidual(self) -> Self {
-        Self::pseudoscalar(1.0) * self
+        self.dual() * Axes::PSEUDOSCALAR_SQUARED
     }
 
     /// Returns the reverse of the term.

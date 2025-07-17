@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Antiwedge products with `Pseudoscalar`
 - `Blade::is_flat_with_prec()`
 - `impl approx_collections::ApproxSign for Pseudoscalar`
+- `tangent_point()` constructor
+- `dipole()` constructor
+- Documentation about orientation
 
 ### Changed
 
@@ -25,6 +28,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added conversions between `Blade1`/`Blade2`/`Blade3` and `Point`/`PointPair`/`Circle` respectively
 - Removed `epsilon` parameter from `Blade::is_flat()`
 - Added `Blade::is_flat_with_prec(prec: Precision)`
+
+### Fixed
+
+- Incorrect `antidual()` for grade 2
 
 ## 0.4.0 - 2024-09-25
 

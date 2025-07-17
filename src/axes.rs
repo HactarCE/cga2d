@@ -104,23 +104,33 @@ impl Mul for Axes {
     type Output = Scalar;
 
     fn mul(self, rhs: Self) -> Self::Output {
-        get_bit_as_sign(GEOMETRIC_PRODUCT_SIGN_LUT[self.bits() as usize], rhs.bits())
+        self.mul_sign(rhs)
     }
 }
 
 impl Axes {
+    /// Pseudoscalar axes.
+    pub const PSEUDOSCALAR: Self = Self::MPXY;
+
+    /// Sign of the pseudoscalar squared.
+    pub const PSEUDOSCALAR_SQUARED: Scalar = Self::PSEUDOSCALAR.mul_sign(Self::PSEUDOSCALAR);
+
     /// Returns the sign of the reverse of the axes.
-    pub fn rev_sign(self) -> Scalar {
+    pub const fn rev_sign(self) -> Scalar {
         get_bit_as_sign(REVERSE_SIGN_LUT, self.bits())
     }
 
     /// Returns the sign of the conjugate of the axes.
-    pub fn conj_sign(self) -> Scalar {
+    pub const fn conj_sign(self) -> Scalar {
         get_bit_as_sign(CONJUGATE_SIGN_LUT, self.bits())
+    }
+
+    const fn mul_sign(self, rhs: Self) -> Scalar {
+        get_bit_as_sign(GEOMETRIC_PRODUCT_SIGN_LUT[self.bits() as usize], rhs.bits())
     }
 }
 
-fn get_bit_as_sign(bitmask: u16, index: u8) -> Scalar {
+const fn get_bit_as_sign(bitmask: u16, index: u8) -> Scalar {
     match bitmask & (1 << index as u16) {
         0 => 1.0,
         _ => -1.0,
@@ -140,5 +150,17 @@ mod tests {
         assert_eq!(Axes::X * Axes::P, -1.0);
         assert_eq!(Axes::P * Axes::P, 1.0);
         assert_eq!(Axes::M * Axes::M, -1.0);
+    }
+
+    #[test]
+    fn test_axes_grade() {
+        assert_eq!(Axes::S.grade(), 0);
+        assert_eq!(Axes::X.grade(), 1);
+        assert_eq!(Axes::Y.grade(), 1);
+        assert_eq!(Axes::M.grade(), 1);
+        assert_eq!(Axes::P.grade(), 1);
+        assert_eq!(Axes::PY.grade(), 2);
+        assert_eq!(Axes::MXY.grade(), 3);
+        assert_eq!(Axes::MPXY.grade(), 4);
     }
 }

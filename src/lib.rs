@@ -15,10 +15,10 @@
 //! assert_eq!(!(line ^ cga2d::point(-1.0, 4.0)), 0.0);
 //!
 //! let circ = cga2d::circle(cga2d::point(3.0, 1.5), 3.0);
-//! assert_eq!(circ.sandwich(NI).unpack().finite(), Some([3.0, 1.5]));
+//! assert_eq!(circ.sandwich(NI).unpack().unwrap().finite(), Some([3.0, 1.5]));
 //!
 //! let rot90_ccw: Rotor = cga2d::line(1.0, 1.0, 0.0) * cga2d::line(1.0, 0.0, 0.0);
-//! assert_eq!(rot90_ccw.sandwich(cga2d::point(3.0, 4.0)).unpack().finite(), Some([-4.0, 3.0]));
+//! assert_eq!(rot90_ccw.sandwich(cga2d::point(3.0, 4.0)).unpack().unwrap().finite(), Some([-4.0, 3.0]));
 //! ```
 //!
 //! # Multivector types
@@ -118,7 +118,8 @@
 //! assert_eq!(inverted_circle.unpack(), cga2d::Circle::Circle {
 //!     cx: -3.0,
 //!     cy: -4.0,
-//!     r: 7.0
+//!     r: 7.0,
+//!     ori: Orientation::Pos, // central inversion preserves orientation
 //! });
 //! ```
 //!
@@ -207,8 +208,8 @@ pub use approx_collections::Precision;
 pub mod prelude {
     pub use approx_collections::Precision;
 
-    pub use crate::blade::{Blade1, Blade2, Blade3, Pseudoscalar, NI, NO};
-    pub use crate::rotoflector::{Flector, Rotoflector, Rotor};
+    pub use crate::blade::*;
+    pub use crate::rotoflector::*;
     pub use crate::traits::*;
 }
 
@@ -222,10 +223,10 @@ pub mod traits {
 }
 
 pub use axes::Axes;
-pub use blade::{Blade, Blade1, Blade2, Blade3, Circle, Pseudoscalar, NI, NO};
+pub use blade::*;
 pub use multivector::Multivector;
 pub use ops::Wedge;
-pub use rotoflector::{Flector, Rotoflector, Rotor};
+pub use rotoflector::*;
 pub use term::Term;
 
 /// 0-blade, used to represent scalar quantities.
@@ -249,7 +250,42 @@ pub fn point(x: Scalar, y: Scalar) -> Blade1 {
     NO + vector(x, y) + 0.5 * mag2 * NI
 }
 
-/// Constructs a circle given a center point and a radius.
+/// Constructs a tangent point given a point and a vector.
+pub fn tangent_point(point: Point, [vx, vy]: [Scalar; 2]) -> Blade2 {
+    dipole(point, [vx, vy], 0.0)
+}
+
+/// Constructs a dipole given a point, a vector, and a radius.
+pub fn dipole(point: Point, [vx, vy]: [Scalar; 2], r: Scalar) -> Blade2 {
+    match point {
+        Point::Finite([px, py]) => {
+            let dot = (px * vx + py * vy) * 2.0;
+            let cross = (px * vy - py * vx) * 2.0;
+            let p2r22 = px * px + py * py + r * r;
+            let ux = p2r22 * vx - dot * px;
+            let uy = p2r22 * vy - dot * py;
+
+            Blade2 {
+                mp: dot,
+                mx: ux + vx,
+                px: ux - vx,
+                my: uy + vy,
+                py: uy - vy,
+                xy: cross,
+            }
+        }
+        Point::Infinity => Blade2 {
+            mp: 0.0,
+            mx: vx,
+            px: vx,
+            my: vy,
+            py: vy,
+            xy: 0.0,
+        },
+    }
+}
+
+/// Constructs a counterclockwise circle given a center point and a radius.
 ///
 /// If `radius` is negative, constructs an imaginary circle.
 pub fn circle(center: Blade1, radius: Scalar) -> Blade3 {
@@ -258,13 +294,12 @@ pub fn circle(center: Blade1, radius: Scalar) -> Blade3 {
 
 /// Constructs a line from the equation _ax+by+c=0_.
 pub fn line(a: Scalar, b: Scalar, c: Scalar) -> Blade3 {
-    Blade1 {
+    !Blade1 {
         m: c,
         p: c,
         x: a,
         y: b,
     }
-    .dual()
 }
 
 /// Constructs a rotor that rotates by `angle`, fixing the origin.

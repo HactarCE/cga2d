@@ -4,9 +4,9 @@ version = 4
 
 [[package]]
 name = "approx_collections"
-version = "1.1.0"
+version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "db1986a40a5d0d168f1aed983dfa9a1f6f5088713d83a893ec8fa265ce1bbf37"
+checksum = "d2fc671732d06d5fa3f2a493481995ae5b928adae2448bd9d54674669839e5dc"
 dependencies = [
  "rustc-hash",
  "smallvec",

@@ -1,4 +1,11 @@
-use approx_collections::{ApproxSign, Precision};
+use std::{
+    hash::Hash,
+    ops::{Mul, Neg},
+};
+
+use approx_collections::{
+    ApproxEq, ApproxEqZero, ApproxHash, ApproxHasher, ApproxSign, ForEachFloat, Precision,
+};
 
 use super::{Axes, Multivector, Scalar, Term, Wedge};
 
@@ -155,17 +162,49 @@ impl Blade1 {
     pub fn no(self) -> Scalar {
         self.m - self.p
     }
+    fn no_eq_zero(self, prec: Precision) -> bool {
+        prec.eq(self.m, self.p)
+    }
+
+    /// Returns the coordinates of a point in 2D Euclidean space, or `None` if
+    /// the point is not on the conformal sphere.
+    ///
+    /// Uses [`Precision::DEFAULT`].
+    pub fn unpack(self) -> Option<Point> {
+        self.unpack_with_prec(Precision::DEFAULT)
+    }
+    /// Returns the coordinates of a point in 2D Euclidean space, or `None` if
+    /// the point is not on the conformal sphere.
+    pub fn unpack_with_prec(self, prec: Precision) -> Option<Point> {
+        if self.no_eq_zero(prec) {
+            if [self.x, self.y].approx_eq_zero(prec) {
+                Some(Point::Infinity)
+            } else {
+                None
+            }
+        } else {
+            if self.mag2().approx_eq_zero(prec) {
+                let no = self.no();
+                Some(Point::Finite([self.x / no, self.y / no]))
+            } else {
+                None
+            }
+        }
+    }
 
     /// Returns the coordinates of a point in 2D Euclidean space.
     ///
+    /// The result is undefined if the point is not on the conformal sphere.
+    ///
     /// Uses [`Precision::DEFAULT`].
-    pub fn unpack(self) -> Point {
-        self.unpack_with_prec(Precision::DEFAULT)
+    pub fn unpack_unchecked(self) -> Point {
+        self.unpack_unchecked_with_prec(Precision::DEFAULT)
     }
     /// Returns the coordinates of a point in 2D Euclidean space.
-    pub fn unpack_with_prec(self, prec: Precision) -> Point {
-        // TODO: handle other cases
-        if prec.eq(self.m, self.p) && prec.eq_zero([self.x, self.y]) {
+    ///
+    /// The result is undefined if the point is not on the conformal sphere.
+    pub fn unpack_unchecked_with_prec(self, prec: Precision) -> Point {
+        if self.no_eq_zero(prec) {
             Point::Infinity
         } else {
             let no = self.no();
@@ -180,17 +219,49 @@ impl Blade1 {
     }
 }
 
+/// Euclidean point.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Point {
+    /// Finite point with X and Y coordinates.
     Finite([Scalar; 2]),
+    /// Point at infinity.
     Infinity,
-    RoundPointDual(Circle),
-    CircleDual(Circle),
 }
-// TODO: `impl ApproxEq, ApproxHash for Point`
 impl Default for Point {
     fn default() -> Self {
         Point::Finite([0.0; 2])
+    }
+}
+impl From<Point> for Blade1 {
+    fn from(value: Point) -> Self {
+        value.to_blade()
+    }
+}
+impl ApproxEq for Point {
+    fn approx_eq(&self, other: &Self, prec: Precision) -> bool {
+        match (self, other) {
+            (Point::Finite(a), Point::Finite(b)) => prec.eq(a, b),
+            (Point::Infinity, Point::Infinity) => true,
+
+            (Point::Finite(_), _) | (_, Point::Finite(_)) => false,
+        }
+    }
+}
+impl ApproxHash for Point {
+    fn approx_hash<H: ApproxHasher>(&self, state: &mut H) {
+        std::mem::discriminant(self).hash(state);
+        match self {
+            Point::Finite(xy) => xy.approx_hash(state),
+            Point::Infinity => (),
+        }
+    }
+}
+impl ForEachFloat for Point {
+    fn for_each_float(&mut self, f: &mut impl FnMut(&mut f64)) {
+        match self {
+            Point::Finite(xy) => xy.for_each_float(f),
+            Point::Infinity => (),
+        }
     }
 }
 impl Point {
@@ -202,19 +273,12 @@ impl Point {
             _ => None,
         }
     }
-}
-impl From<Blade1> for Point {
-    fn from(value: Blade1) -> Self {
-        value.unpack()
-    }
-}
-impl From<Point> for Blade1 {
-    fn from(value: Point) -> Self {
-        match value {
+
+    /// Returns a blade representing the point.
+    pub fn to_blade(self) -> Blade1 {
+        match self {
             Point::Finite([x, y]) => crate::point(x, y),
             Point::Infinity => NI,
-            Point::RoundPointDual(circle) => todo!(),
-            Point::CircleDual(circle) => todo!(),
         }
     }
 }
@@ -252,24 +316,44 @@ impl Blade2 {
     /// Returns the real, imaginary, or tangent pair of points in a point pair.
     ///
     /// Uses [`Precision::DEFAULT`].
-    pub fn unpack(self) -> PointPair {
+    pub fn unpack(self) -> Dipole {
         self.unpack_with_prec(Precision::DEFAULT)
     }
 
     /// Returns the real, imaginary, or tangent pair of points in a point pair.
-    pub fn unpack_with_prec(self, prec: Precision) -> PointPair {
+    pub fn unpack_with_prec(self, prec: Precision) -> Dipole {
         let mag2 = self.mag2();
 
         match mag2.approx_sign(prec) {
-            approx_collections::Sign::Negative => PointPair::Imaginary {},
-            approx_collections::Sign::Zero => PointPair::Tangent {
-                point: self.unpack_raw(0.0)[0],
-            },
-            approx_collections::Sign::Positive => PointPair::Real(self.unpack_raw(mag2.sqrt())),
+            approx_collections::Sign::Negative => {
+                Dipole::Imaginary(self.dual().unpack_raw((-mag2).sqrt(), prec, [1.0, -1.0]))
+            }
+            approx_collections::Sign::Zero => {
+                let point = self.unpack_raw(0.0, prec, [0.0])[0];
+                let vector = match point {
+                    Point::Finite(_) => [self.mx - self.px, self.my - self.py],
+                    Point::Infinity => [self.mx, self.my], // (mx, my) = (px, py)
+                };
+                Dipole::Tangent(point, vector).normalize()
+            }
+            approx_collections::Sign::Positive => {
+                Dipole::Real(self.unpack_raw(mag2.sqrt(), prec, [1.0, -1.0]))
+            }
         }
     }
 
-    fn unpack_raw(self, mag: f64) -> [Blade1; 2] {
+    /// Unpacks a real point pair or tangent vector.
+    ///
+    /// The result is undefined for an imaginary point pair.
+    ///
+    /// - To get both points of a real point, use `distances = [1.0, -1.0]`.
+    /// - To get the point of a tangent vector, use `distances = [0.0]`.
+    fn unpack_raw<const N: usize>(
+        self,
+        mag: f64,
+        prec: Precision,
+        distances: [f64; N],
+    ) -> [Point; N] {
         // We need to use an arbitrary point that is not in the point
         // pair. Of these three points, there is guaranteed to be one
         // with a nonzero result.
@@ -281,7 +365,9 @@ impl Blade2 {
             .expect("empty candidates list")
             .inv();
 
-        [1.0, -1.0].map(|sign| (multiplier << self) + (sign * mag * multiplier))
+        distances.map(|sign| {
+            ((multiplier << self) + (sign * mag * multiplier)).unpack_unchecked_with_prec(prec)
+        })
     }
 
     /// Rotates a tangent vector counterclockwise by `angle` (in radians).
@@ -290,40 +376,103 @@ impl Blade2 {
     }
 }
 
+/// Real or imaginary point pair in Euclidean space.
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub enum PointPair {
-    Real([Blade1; 2]),
-    #[non_exhaustive]
-    Tangent {
-        point: Blade1,
-        // TODO: vector
-    },
-    #[non_exhaustive]
-    Imaginary {
-        // TODO: imaginary points
-    },
+pub enum Dipole {
+    /// Pair of real points.
+    Real([Point; 2]),
+    /// Tangent point, represented by a point and a Euclidean tangent vector.
+    Tangent(Point, [Scalar; 2]),
+    /// Imaginary point pair, represented by the points in its dual.
+    Imaginary([Point; 2]),
 }
-// TODO: `impl ApproxEq, ApproxHash for PointPair`
-impl PointPair {
-    /// Returns the real point pair, or `None` if it is not real.
-    pub fn real(self) -> Option<[Blade1; 2]> {
-        match self {
-            PointPair::Real(pair) => Some(pair),
-            _ => None,
-        }
-    }
-}
-impl From<Blade2> for PointPair {
+impl From<Blade2> for Dipole {
     fn from(value: Blade2) -> Self {
         value.unpack()
     }
 }
-impl From<PointPair> for Blade2 {
-    fn from(value: PointPair) -> Self {
-        match value {
-            PointPair::Real([p1, p2]) => p1 ^ p2,
-            PointPair::Tangent { point } => todo!(),
-            PointPair::Imaginary {} => todo!(),
+impl From<Dipole> for Blade2 {
+    fn from(value: Dipole) -> Self {
+        value.to_blade()
+    }
+}
+impl ApproxEq for Dipole {
+    fn approx_eq(&self, other: &Self, prec: Precision) -> bool {
+        match (self, other) {
+            (Dipole::Real(pp1), Dipole::Real(pp2)) => prec.eq(pp1, pp2),
+            (Dipole::Tangent(p1, v1), Dipole::Tangent(p2, v2)) => {
+                prec.eq(p1, p2) && prec.eq(v1, v2)
+            }
+            (Dipole::Imaginary(pp1), Dipole::Imaginary(pp2)) => prec.eq(pp1, pp2),
+
+            (Dipole::Real(_), _) | (_, Dipole::Real(_)) => false,
+            (Dipole::Tangent(_, _), _) | (_, Dipole::Tangent(_, _)) => false,
+        }
+    }
+}
+impl ApproxHash for Dipole {
+    fn approx_hash<H: ApproxHasher>(&self, state: &mut H) {
+        std::mem::discriminant(self).hash(state);
+        match self {
+            Dipole::Real(pp) => pp.approx_hash(state),
+            Dipole::Tangent(p, v) => {
+                p.approx_hash(state);
+                v.approx_hash(state);
+            }
+            Dipole::Imaginary(pp) => pp.approx_hash(state),
+        }
+    }
+}
+impl ForEachFloat for Dipole {
+    fn for_each_float(&mut self, f: &mut impl FnMut(&mut f64)) {
+        match self {
+            Dipole::Real(pp) => pp.for_each_float(f),
+            Dipole::Tangent(p, v) => {
+                p.for_each_float(f);
+                v.for_each_float(f);
+            }
+            Dipole::Imaginary(pp) => pp.for_each_float(f),
+        }
+    }
+}
+impl Neg for Dipole {
+    type Output = Dipole;
+
+    fn neg(self) -> Self::Output {
+        match self {
+            Dipole::Real([p, q]) => Dipole::Real([q, p]),
+            Dipole::Tangent(p, [vx, vy]) => Dipole::Tangent(p, [-vx, -vy]),
+            Dipole::Imaginary([p, q]) => Dipole::Imaginary([q, p]),
+        }
+    }
+}
+impl Dipole {
+    /// Normalizes tangent points so that the vector is unit-length.
+    #[must_use = "normalize() returns a mutated copy"]
+    pub fn normalize(self) -> Self {
+        match self {
+            Dipole::Tangent(p, [vx, vy]) => {
+                let scale = vector_mag([vx, vy]).recip();
+                Dipole::Tangent(p, [vx * scale, vy * scale])
+            }
+            _ => self,
+        }
+    }
+
+    /// Returns the real point pair, or `None` if it is not real.
+    pub fn real(self) -> Option<[Point; 2]> {
+        match self {
+            Dipole::Real(pair) => Some(pair),
+            _ => None,
+        }
+    }
+
+    /// Returns a blade representing the dipole.
+    pub fn to_blade(self) -> Blade2 {
+        match self {
+            Dipole::Real([p1, p2]) => p1.to_blade() ^ p2.to_blade(),
+            Dipole::Tangent(p, v) => crate::tangent_point(p, v),
+            Dipole::Imaginary([p1, p2]) => (p1.to_blade() ^ p2.to_blade()).antidual(),
         }
     }
 }
@@ -362,12 +511,17 @@ impl Blade3 {
 
     /// Returns the line or circle in Euclidean space.
     pub fn unpack_with_prec(self, prec: Precision) -> Circle {
-        let dual = self.dual();
-        if prec.eq(dual.m, dual.p) {
-            Circle::Line {
-                a: dual.x,
-                b: dual.y,
-                c: dual.p,
+        let dual = self.antidual();
+        if dual.no_eq_zero(prec) {
+            if [dual.x, dual.y].approx_eq_zero(prec) {
+                Circle::Infinity(Orientation::from(dual.m)) // m = p
+            } else {
+                Circle::Line {
+                    a: dual.x,
+                    b: dual.y,
+                    c: dual.p,
+                }
+                .normalize()
             }
         } else {
             let no = dual.no();
@@ -375,7 +529,12 @@ impl Blade3 {
             let cy = dual.y / no;
             let r2 = dual.mag2() / (no * no);
             let r = r2.abs().sqrt() * r2.signum();
-            Circle::Circle { cx, cy, r }
+            Circle::Circle {
+                cx,
+                cy,
+                r,
+                ori: Orientation::from(no),
+            }
         }
     }
 }
@@ -385,16 +544,29 @@ impl Blade3 {
 #[allow(missing_docs)]
 pub enum Circle {
     /// Line described by the equation _ax+by=c_.
+    ///
+    /// The vector `(a, b)` represents the normal vector of the line. `a` and
+    /// `b` cannot both be zero. When returned from [`Blade3::unpack()`] or
+    /// [`Blade3::unpack_with_prec()`], the vector `(a, b)` is unit-length.
     Line { a: Scalar, b: Scalar, c: Scalar },
-    /// Circle described by the equation _(x-cx)^2+(y-cy)^2=r^2_. If _r_ is
-    /// negative, then the circle is imaginary.
+    /// Real or imaginary circle described by the equation
+    /// _(x-cx)^2+(y-cy)^2=r^2_. If _r_ is positive, then the circle is real; if
+    /// _r_ is negative, then the circle is imaginary.
     ///
     /// Imaginary circles are actually circles with an _imaginary_ radius (so
     /// their radius _squared_ is negative) but we represent them with a
     /// negative radius for convenience.
     ///
-    /// The radius may be zero, such as in the case of the dual of a point.
-    Circle { cx: Scalar, cy: Scalar, r: Scalar },
+    /// The radius may be zero, in which case the circle is the dual of a real
+    /// point.
+    Circle {
+        cx: Scalar,
+        cy: Scalar,
+        r: Scalar,
+        ori: Orientation,
+    },
+    /// Circle with zero radius centered on the point at infinity.
+    Infinity(Orientation),
 }
 impl From<Blade3> for Circle {
     fn from(value: Blade3) -> Self {
@@ -403,9 +575,157 @@ impl From<Blade3> for Circle {
 }
 impl From<Circle> for Blade3 {
     fn from(value: Circle) -> Self {
-        match value {
+        value.to_blade()
+    }
+}
+impl ApproxEq for Circle {
+    fn approx_eq(&self, other: &Self, prec: Precision) -> bool {
+        match (self, other) {
+            (
+                Circle::Line {
+                    a: a1,
+                    b: b1,
+                    c: c1,
+                },
+                Circle::Line {
+                    a: a2,
+                    b: b2,
+                    c: c2,
+                },
+            ) => prec.eq([a1, b1, c1], [a2, b2, c2]),
+            (
+                Circle::Circle {
+                    cx: cx1,
+                    cy: cy1,
+                    r: r1,
+                    ori: ori1,
+                },
+                Circle::Circle {
+                    cx: cx2,
+                    cy: cy2,
+                    r: r2,
+                    ori: ori2,
+                },
+            ) => prec.eq([cx1, cy1, r1], [cx2, cy2, r2]) && ori1 == ori2,
+            (Circle::Infinity(ori1), Circle::Infinity(ori2)) => ori1 == ori2,
+
+            (Circle::Line { .. }, _) | (_, Circle::Line { .. }) => false,
+            (Circle::Circle { .. }, _) | (_, Circle::Circle { .. }) => false,
+        }
+    }
+}
+impl ApproxHash for Circle {
+    fn approx_hash<H: ApproxHasher>(&self, state: &mut H) {
+        std::mem::discriminant(self).hash(state);
+        match *self {
+            Circle::Line { a, b, c } => [a, b, c].approx_hash(state),
+            Circle::Circle { cx, cy, r, ori } => {
+                [cx, cy, r].approx_hash(state);
+                ori.hash(state);
+            }
+            Circle::Infinity(ori) => ori.hash(state),
+        }
+    }
+}
+impl ForEachFloat for Circle {
+    fn for_each_float(&mut self, f: &mut impl FnMut(&mut f64)) {
+        match self {
+            Circle::Line { a, b, c } => {
+                f(a);
+                f(b);
+                f(c);
+            }
+            Circle::Circle { cx, cy, r, ori: _ } => {
+                f(cx);
+                f(cy);
+                f(r);
+            }
+            Circle::Infinity(_) => (),
+        }
+    }
+}
+impl Neg for Circle {
+    type Output = Circle;
+
+    fn neg(self) -> Self::Output {
+        match self {
+            Circle::Line { a, b, c } => Circle::Line {
+                a: -a,
+                b: -b,
+                c: -c,
+            },
+            Circle::Circle { cx, cy, r, ori } => Circle::Circle {
+                cx,
+                cy,
+                r,
+                ori: -ori,
+            },
+            Circle::Infinity(ori) => Circle::Infinity(-ori),
+        }
+    }
+}
+impl Circle {
+    /// Normalizes lines so that the vector `(a, b)` is unit-length.
+    #[must_use = "normalize() returns a mutated copy"]
+    pub fn normalize(self) -> Self {
+        match self {
+            Circle::Line { a, b, c } => {
+                let scale = vector_mag([a, b]).recip();
+                Circle::Line {
+                    a: a * scale,
+                    b: b * scale,
+                    c: c * scale,
+                }
+            }
+            _ => self,
+        }
+    }
+
+    /// Returns a blade representing the circle.
+    pub fn to_blade(self) -> Blade3 {
+        match self {
             Circle::Line { a, b, c } => crate::line(a, b, c),
-            Circle::Circle { cx, cy, r } => crate::circle(crate::point(cx, cy), r),
+            Circle::Circle { cx, cy, r, ori } => ori * crate::circle(crate::point(cx, cy), r),
+            Circle::Infinity(ori) => ori * !crate::NI,
+        }
+    }
+}
+
+/// Orientation of an object.
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum Orientation {
+    /// Positive or counterclockwise.
+    #[default]
+    Pos = 1,
+    /// Negative or clockwise.
+    Neg = -1,
+}
+impl From<Scalar> for Orientation {
+    fn from(value: Scalar) -> Self {
+        if value.is_sign_positive() {
+            Orientation::Pos
+        } else {
+            Orientation::Neg
+        }
+    }
+}
+impl<T: Neg<Output = T>> Mul<T> for Orientation {
+    type Output = T;
+
+    fn mul(self, rhs: T) -> Self::Output {
+        match self {
+            Orientation::Pos => rhs,
+            Orientation::Neg => -rhs,
+        }
+    }
+}
+impl Neg for Orientation {
+    type Output = Orientation;
+
+    fn neg(self) -> Self::Output {
+        match self {
+            Orientation::Pos => Orientation::Neg,
+            Orientation::Neg => Orientation::Pos,
         }
     }
 }
@@ -430,4 +750,8 @@ impl ApproxSign for Pseudoscalar {
     fn approx_sign(&self, prec: Precision) -> approx_collections::Sign {
         self.mpxy.approx_sign(prec)
     }
+}
+
+fn vector_mag([x, y]: [Scalar; 2]) -> Scalar {
+    ((x * x) + (y * y)).sqrt()
 }

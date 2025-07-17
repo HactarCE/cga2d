@@ -9,7 +9,7 @@ use std::ops::{
 };
 
 use approx_collections::{
-    ApproxEq, ApproxEqZero, ApproxHash, ApproxHasher, Precision, VisitFloats,
+    ApproxEq, ApproxEqZero, ApproxHash, ApproxHasher, ForEachFloat, Precision,
 };
 
 use super::{
@@ -507,20 +507,6 @@ macro_rules! impl_approx_eq {
                 self.terms().iter().all(|term| prec.eq_zero(term.coef))
             }
         }
-
-        impl VisitFloats for $type {
-            fn visit_floats(&self, mut f: impl FnMut(&f64)) {
-                self.terms().iter().for_each(|t| f(&t.coef));
-            }
-
-            fn visit_floats_mut(&mut self, mut f: impl FnMut(&mut f64)) {
-                let new_terms = self.terms().map(|mut t| {
-                    f(&mut t.coef);
-                    t
-                });
-                *self = new_terms.into_iter().sum();
-            }
-        }
     };
 }
 
@@ -531,6 +517,36 @@ impl_approx_eq!(Pseudoscalar);
 impl_approx_eq!(Rotor);
 impl_approx_eq!(Flector);
 impl_approx_eq!(Rotoflector);
+
+macro_rules! impl_for_each_float {
+    ($type:ty) => {
+        impl ForEachFloat for $type {
+            fn for_each_float(&mut self, f: &mut impl FnMut(&mut f64)) {
+                let new_terms = self.terms().map(|mut t| {
+                    f(&mut t.coef);
+                    t
+                });
+                *self = new_terms.into_iter().sum();
+            }
+        }
+    };
+}
+
+impl_for_each_float!(Blade1);
+impl_for_each_float!(Blade2);
+impl_for_each_float!(Blade3);
+impl_for_each_float!(Pseudoscalar);
+impl_for_each_float!(Rotor);
+impl_for_each_float!(Flector);
+impl ForEachFloat for Rotoflector {
+    fn for_each_float(&mut self, f: &mut impl FnMut(&mut f64)) {
+        match self {
+            Rotoflector::Zero => (),
+            Rotoflector::Rotor(rotor) => rotor.for_each_float(f),
+            Rotoflector::Flector(flector) => flector.for_each_float(f),
+        }
+    }
+}
 
 macro_rules! impl_approx_hash_terms {
     ($type:ty) => {
