@@ -1,7 +1,7 @@
 [package]
 name = "cga2d"
 description = "2D Conformal Geometric Algebra primitives"
-version = "1.0.0"
+version = "2.0.0"
 authors = ["Andrew Farkas"]
 edition = "2021"
 rust-version = "1.88.0"
