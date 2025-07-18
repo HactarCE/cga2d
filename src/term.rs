@@ -2,9 +2,7 @@ use std::fmt;
 use std::hash::Hash;
 use std::ops::{Mul, Neg, Not};
 
-use approx_collections::{
-    ApproxEq, ApproxEqZero, ApproxHash, ApproxHasher, ForEachFloat, Precision,
-};
+use approx_collections::{ApproxEq, ApproxEqZero, ApproxHash, Precision};
 
 use super::{Axes, Scalar};
 
@@ -82,15 +80,17 @@ impl ApproxEqZero for Term {
 }
 
 impl ApproxHash for Term {
-    fn approx_hash<H: ApproxHasher>(&self, state: &mut H) {
-        self.axes.hash(state);
-        self.coef.approx_hash(state);
+    fn intern_floats<F: FnMut(&mut f64)>(&mut self, f: &mut F) {
+        self.coef.intern_floats(f);
     }
-}
 
-impl ForEachFloat for Term {
-    fn for_each_float(&mut self, f: &mut impl FnMut(&mut f64)) {
-        f(&mut self.coef)
+    fn interned_eq(&self, other: &Self) -> bool {
+        self.coef.interned_eq(&other.coef)
+    }
+
+    fn interned_hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.axes.hash(state);
+        self.coef.interned_hash(state);
     }
 }
 

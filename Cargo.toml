@@ -35,7 +35,7 @@ uninlined_format_args = "warn"
 unwrap_used = "warn"
 
 [dependencies]
-approx_collections = "2.0.0"
+approx_collections = "3.0.0"
 bitflags = "2.9.1"
 bytemuck = { version = "1.23.1", optional = true, features = ["derive"] }
 itertools = "0.14.0"

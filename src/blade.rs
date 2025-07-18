@@ -1,11 +1,10 @@
 use std::{
+    cmp::Ordering,
     hash::Hash,
     ops::{Mul, Neg},
 };
 
-use approx_collections::{
-    ApproxEq, ApproxEqZero, ApproxHash, ApproxHasher, ApproxSign, ForEachFloat, Precision,
-};
+use approx_collections::{ApproxCmpZero, ApproxEq, ApproxEqZero, ApproxHash, Precision};
 
 use super::{Axes, Multivector, Scalar, Term, Wedge};
 
@@ -248,18 +247,25 @@ impl ApproxEq for Point {
     }
 }
 impl ApproxHash for Point {
-    fn approx_hash<H: ApproxHasher>(&self, state: &mut H) {
-        std::mem::discriminant(self).hash(state);
+    fn intern_floats<F: FnMut(&mut f64)>(&mut self, f: &mut F) {
         match self {
-            Point::Finite(xy) => xy.approx_hash(state),
+            Point::Finite(xy) => xy.intern_floats(f),
             Point::Infinity => (),
         }
     }
-}
-impl ForEachFloat for Point {
-    fn for_each_float(&mut self, f: &mut impl FnMut(&mut f64)) {
+
+    fn interned_eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Point::Finite(f1), Point::Finite(f2)) => f1.interned_eq(f2),
+            (Point::Infinity, Point::Infinity) => true,
+
+            (Point::Finite(_) | Point::Infinity, _) => false,
+        }
+    }
+
+    fn interned_hash<H: std::hash::Hasher>(&self, state: &mut H) {
         match self {
-            Point::Finite(xy) => xy.for_each_float(f),
+            Point::Finite(xy) => xy.interned_hash(state),
             Point::Infinity => (),
         }
     }
@@ -324,11 +330,11 @@ impl Blade2 {
     pub fn unpack_with_prec(self, prec: Precision) -> Dipole {
         let mag2 = self.mag2();
 
-        match mag2.approx_sign(prec) {
-            approx_collections::Sign::Negative => {
+        match mag2.approx_cmp_zero(prec) {
+            Ordering::Less => {
                 Dipole::Imaginary(self.dual().unpack_raw((-mag2).sqrt(), prec, [1.0, -1.0]))
             }
-            approx_collections::Sign::Zero => {
+            Ordering::Equal => {
                 let point = self.unpack_raw(0.0, prec, [0.0])[0];
                 let vector = match point {
                     Point::Finite(_) => [self.mx - self.px, self.my - self.py],
@@ -336,9 +342,7 @@ impl Blade2 {
                 };
                 Dipole::Tangent(point, vector).normalize()
             }
-            approx_collections::Sign::Positive => {
-                Dipole::Real(self.unpack_raw(mag2.sqrt(), prec, [1.0, -1.0]))
-            }
+            Ordering::Greater => Dipole::Real(self.unpack_raw(mag2.sqrt(), prec, [1.0, -1.0])),
         }
     }
 
@@ -405,33 +409,43 @@ impl ApproxEq for Dipole {
             }
             (Dipole::Imaginary(pp1), Dipole::Imaginary(pp2)) => prec.eq(pp1, pp2),
 
-            (Dipole::Real(_), _) | (_, Dipole::Real(_)) => false,
-            (Dipole::Tangent(_, _), _) | (_, Dipole::Tangent(_, _)) => false,
+            (Dipole::Real(_) | Dipole::Tangent(_, _) | Dipole::Imaginary(_), _) => false,
         }
     }
 }
 impl ApproxHash for Dipole {
-    fn approx_hash<H: ApproxHasher>(&self, state: &mut H) {
-        std::mem::discriminant(self).hash(state);
+    fn intern_floats<F: FnMut(&mut f64)>(&mut self, f: &mut F) {
         match self {
-            Dipole::Real(pp) => pp.approx_hash(state),
+            Dipole::Real(pp) => pp.intern_floats(f),
             Dipole::Tangent(p, v) => {
-                p.approx_hash(state);
-                v.approx_hash(state);
+                p.intern_floats(f);
+                v.intern_floats(f);
             }
-            Dipole::Imaginary(pp) => pp.approx_hash(state),
+            Dipole::Imaginary(pp) => pp.intern_floats(f),
         }
     }
-}
-impl ForEachFloat for Dipole {
-    fn for_each_float(&mut self, f: &mut impl FnMut(&mut f64)) {
-        match self {
-            Dipole::Real(pp) => pp.for_each_float(f),
-            Dipole::Tangent(p, v) => {
-                p.for_each_float(f);
-                v.for_each_float(f);
+
+    fn interned_eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Dipole::Real(pp1), Dipole::Real(pp2)) => pp1.interned_eq(pp2),
+            (Dipole::Tangent(p1, v1), Dipole::Tangent(p2, v2)) => {
+                p1.interned_eq(p2) && v1.interned_eq(v2)
             }
-            Dipole::Imaginary(pp) => pp.for_each_float(f),
+            (Dipole::Imaginary(pp1), Dipole::Imaginary(pp2)) => pp1.interned_eq(pp2),
+
+            (Dipole::Real(_) | Dipole::Tangent(_, _) | Dipole::Imaginary(_), _) => false,
+        }
+    }
+
+    fn interned_hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        std::mem::discriminant(self).hash(state);
+        match self {
+            Dipole::Real(pp) => pp.interned_hash(state),
+            Dipole::Tangent(p, v) => {
+                p.interned_hash(state);
+                v.interned_hash(state);
+            }
+            Dipole::Imaginary(pp) => pp.interned_hash(state),
         }
     }
 }
@@ -609,38 +623,62 @@ impl ApproxEq for Circle {
             ) => prec.eq([cx1, cy1, r1], [cx2, cy2, r2]) && ori1 == ori2,
             (Circle::Infinity(ori1), Circle::Infinity(ori2)) => ori1 == ori2,
 
-            (Circle::Line { .. }, _) | (_, Circle::Line { .. }) => false,
-            (Circle::Circle { .. }, _) | (_, Circle::Circle { .. }) => false,
+            (Circle::Line { .. } | Circle::Circle { .. } | Circle::Infinity(_), _) => false,
         }
     }
 }
 impl ApproxHash for Circle {
-    fn approx_hash<H: ApproxHasher>(&self, state: &mut H) {
+    fn intern_floats<F: FnMut(&mut f64)>(&mut self, f: &mut F) {
+        match self {
+            Circle::Line { a, b, c } => [a, b, c].intern_floats(f),
+            Circle::Circle { cx, cy, r, ori: _ } => [cx, cy, r].intern_floats(f),
+            Circle::Infinity(_ori) => (),
+        }
+    }
+
+    fn interned_eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (
+                &Circle::Line {
+                    a: a1,
+                    b: b1,
+                    c: c1,
+                },
+                &Circle::Line {
+                    a: a2,
+                    b: b2,
+                    c: c2,
+                },
+            ) => [a1, b1, c1].interned_eq(&[a2, b2, c2]),
+            (
+                &Circle::Circle {
+                    cx: cx1,
+                    cy: cy1,
+                    r: r1,
+                    ori: ori1,
+                },
+                &Circle::Circle {
+                    cx: cx2,
+                    cy: cy2,
+                    r: r2,
+                    ori: ori2,
+                },
+            ) => [cx1, cy1, r1].interned_eq(&[cx2, cy2, r2]) && ori1 == ori2,
+            (Circle::Infinity(ori1), Circle::Infinity(ori2)) => ori1 == ori2,
+
+            (Circle::Line { .. } | Circle::Circle { .. } | Circle::Infinity(_), _) => false,
+        }
+    }
+
+    fn interned_hash<H: std::hash::Hasher>(&self, state: &mut H) {
         std::mem::discriminant(self).hash(state);
         match *self {
-            Circle::Line { a, b, c } => [a, b, c].approx_hash(state),
+            Circle::Line { a, b, c } => [a, b, c].interned_hash(state),
             Circle::Circle { cx, cy, r, ori } => {
-                [cx, cy, r].approx_hash(state);
+                [cx, cy, r].interned_hash(state);
                 ori.hash(state);
             }
             Circle::Infinity(ori) => ori.hash(state),
-        }
-    }
-}
-impl ForEachFloat for Circle {
-    fn for_each_float(&mut self, f: &mut impl FnMut(&mut f64)) {
-        match self {
-            Circle::Line { a, b, c } => {
-                f(a);
-                f(b);
-                f(c);
-            }
-            Circle::Circle { cx, cy, r, ori: _ } => {
-                f(cx);
-                f(cy);
-                f(r);
-            }
-            Circle::Infinity(_) => (),
         }
     }
 }
@@ -746,9 +784,9 @@ impl_multivector!(Pseudoscalar {
 impl Blade for Pseudoscalar {
     const GRADE: u8 = 4;
 }
-impl ApproxSign for Pseudoscalar {
-    fn approx_sign(&self, prec: Precision) -> approx_collections::Sign {
-        self.mpxy.approx_sign(prec)
+impl ApproxCmpZero for Pseudoscalar {
+    fn approx_cmp_zero(&self, prec: Precision) -> Ordering {
+        self.mpxy.approx_cmp_zero(prec)
     }
 }
 

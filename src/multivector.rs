@@ -22,7 +22,6 @@ pub trait Multivector:
     + ApproxEq
     + ApproxEqZero
     + ApproxHash
-    + ForEachFloat
 {
     /// Array type `[Term; N]` of terms in the blade.
     type Terms: Copy + AsRef<[Term]> + IntoIterator<Item = Term>;

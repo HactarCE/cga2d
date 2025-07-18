@@ -8,9 +8,7 @@ use std::ops::{
     Sub, SubAssign,
 };
 
-use approx_collections::{
-    ApproxEq, ApproxEqZero, ApproxHash, ApproxHasher, ForEachFloat, Precision,
-};
+use approx_collections::{ApproxEq, ApproxEqZero, ApproxHash, Precision};
 
 use super::{
     Axes, Blade, Blade1, Blade2, Blade3, Flector, Multivector, Pseudoscalar, Rotoflector, Rotor,
@@ -518,59 +516,69 @@ impl_approx_eq!(Rotor);
 impl_approx_eq!(Flector);
 impl_approx_eq!(Rotoflector);
 
-macro_rules! impl_for_each_float {
-    ($type:ty) => {
-        impl ForEachFloat for $type {
-            fn for_each_float(&mut self, f: &mut impl FnMut(&mut f64)) {
-                let new_terms = self.terms().map(|mut t| {
-                    f(&mut t.coef);
-                    t
-                });
-                *self = new_terms.into_iter().sum();
+macro_rules! impl_approx_hash {
+    ($type:ty; $($field:ident),* $(,)?) => {
+        impl ApproxHash for $type {
+            fn intern_floats<F: FnMut(&mut f64)>(&mut self, f: &mut F) {
+                // unpack to throw compile error if any fields are missing
+                let Self { $($field),* } = self;
+                $( f($field); )*
+            }
+
+            fn interned_eq(&self, other: &Self) -> bool {
+                $( self.$field.to_bits() == other.$field.to_bits() )&&*
+            }
+
+            fn interned_hash<H: std::hash::Hasher>(&self, state: &mut H) {
+                $( self.$field.to_bits().hash(state); )*
             }
         }
     };
 }
 
-impl_for_each_float!(Blade1);
-impl_for_each_float!(Blade2);
-impl_for_each_float!(Blade3);
-impl_for_each_float!(Pseudoscalar);
-impl_for_each_float!(Rotor);
-impl_for_each_float!(Flector);
-impl ForEachFloat for Rotoflector {
-    fn for_each_float(&mut self, f: &mut impl FnMut(&mut f64)) {
+impl_approx_hash!(Blade1; m, p, x, y);
+impl_approx_hash!(Blade2; mp, mx, px, my, py, xy);
+impl_approx_hash!(Blade3; mpx, mpy, mxy, pxy);
+impl_approx_hash!(Pseudoscalar; mpxy);
+impl_approx_hash!(Rotor; s, mp, mx, px, my, py, xy, mpxy);
+impl_approx_hash!(Flector; m, p, x, y, mpx, mpy, mxy, pxy);
+impl ApproxHash for Rotoflector {
+    fn intern_floats<F: FnMut(&mut f64)>(&mut self, f: &mut F) {
         match self {
             Rotoflector::Zero => (),
-            Rotoflector::Rotor(rotor) => rotor.for_each_float(f),
-            Rotoflector::Flector(flector) => flector.for_each_float(f),
-        }
-    }
-}
-
-macro_rules! impl_approx_hash_terms {
-    ($type:ty) => {
-        impl ApproxHash for $type {
-            fn approx_hash<H: ApproxHasher>(&self, state: &mut H) {
-                for term in self.terms() {
-                    term.coef.approx_hash(state)
+            Rotoflector::Rotor(rotor) => {
+                rotor.intern_floats(f);
+                if (*rotor).interned_eq(&Rotor::zero()) {
+                    *self = Rotoflector::Zero;
+                }
+            }
+            Rotoflector::Flector(flector) => {
+                flector.intern_floats(f);
+                if (*flector).interned_eq(&Flector::zero()) {
+                    *self = Rotoflector::Zero
                 }
             }
         }
-    };
-}
+    }
 
-impl_approx_hash_terms!(Blade1);
-impl_approx_hash_terms!(Blade2);
-impl_approx_hash_terms!(Blade3);
-impl_approx_hash_terms!(Pseudoscalar);
-impl_approx_hash_terms!(Rotor);
-impl_approx_hash_terms!(Flector);
-impl ApproxHash for Rotoflector {
-    fn approx_hash<H: ApproxHasher>(&self, state: &mut H) {
+    fn interned_eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Rotoflector::Zero, Rotoflector::Zero) => true,
+            (Rotoflector::Rotor(r1), Rotoflector::Rotor(r2)) => r1.interned_eq(r2),
+            (Rotoflector::Flector(f1), Rotoflector::Flector(f2)) => f1.interned_eq(f2),
+
+            (Rotoflector::Zero, _) => false,
+            (Rotoflector::Rotor(_), _) => false,
+            (Rotoflector::Flector(_), _) => false,
+        }
+    }
+
+    fn interned_hash<H: std::hash::Hasher>(&self, state: &mut H) {
         std::mem::discriminant(self).hash(state);
-        for term in self.terms() {
-            term.coef.approx_hash(state);
+        match self {
+            Rotoflector::Zero => (),
+            Rotoflector::Rotor(rotor) => rotor.interned_hash(state),
+            Rotoflector::Flector(flector) => flector.interned_hash(state),
         }
     }
 }
